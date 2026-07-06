@@ -11,6 +11,7 @@ The video plays for **1 minute 50 seconds** across three acts, each using a diff
 ## The Story Arc
 
 ### Act 1 — Coverage Growth (0–35s)
+
 **Chart:** `tools/coverage-growth.html` — dual-axis bar + line chart
 
 The opening question: why did reported emissions more than double since 2020? The answer is coverage, not actual growth. As bars grow in one-at-a-time (one per year), the number of reporting bodies is shown above each bar. By 2025, 82 bodies report a combined £12 billion supply chain spend. The orange spend line draws in at the end to show both trends together.
@@ -18,6 +19,7 @@ The opening question: why did reported emissions more than double since 2020? Th
 > *Key insight: More organisations joined, so the total went up — but that's a good thing. Per-body emissions are falling.*
 
 ### Act 2 — Sector Shares (35–75s)
+
 **Chart:** `tools/sector-donut.html` — animated donut chart with text panel
 
 Five coloured sectors draw in one by one around the donut (Local Authorities, NHS Wales, Other PSBs, Universities, Welsh Government). Then the individual colours fade and a single orange arc sweeps around to 80%, with an animated counter rising to 80%. The right-side panel explains why those two sectors dominate.
@@ -25,6 +27,7 @@ Five coloured sectors draw in one by one around the donut (Local Authorities, NH
 > *Key insight: Local Authorities (45%) + NHS Wales (35%) = 80% of all Welsh public sector emissions.*
 
 ### Act 3 — Supply Chain Blocks (75–110s)
+
 **Chart:** `tools/supply-chain-blocks.html` — animated block/waffle chart
 
 Four large blocks fall in one at a time with a bouncy spring animation. Three are orange (supply chain), one is grey (everything else). The grey block reveals "75%" in orange. The footnote fades in below: *procurement reform is the most powerful lever for Net Zero 2030*.
@@ -79,22 +82,28 @@ Each tool is loaded in an `<iframe>` by the DIVE player. Communication is via `w
 Each tool responds to its own state schema:
 
 **coverage-growth.html**
+
 ```json
 { "revealYear": 2022, "showLine": true, "streamTime": true,
   "segmentStartTimeMs": 0, "segmentEndTimeMs": 25000 }
 ```
+
 `streamTime: true` means the tool should interpolate `revealYear` between `2020` and `2025` based on the current timeline position within the segment. This produces a smooth, continuous reveal rather than a jump.
 
 **sector-donut.html**
+
 ```json
 { "phase": 2 }
 ```
+
 `phase 1` = individual sectors drawing in, `phase 2` = orange 80% arc sweeps, `phase 3` = explanation text appears on the right.
 
 **supply-chain-blocks.html**
+
 ```json
 { "revealBlocks": 3, "showFootnote": false }
 ```
+
 `revealBlocks` (0–4) determines how many blocks are visible. Each block falls in with a spring animation when its keyframe fires. `showFootnote: true` fades in the bottom text.
 
 ### Standalone Mode
@@ -111,7 +120,7 @@ npm install
 npm run dev
 ```
 
-Then open: **http://localhost:5173/examples/welsh_net_zero/**
+Then open: **<http://localhost:5173/welsh_net_zero/>**
 
 ---
 
