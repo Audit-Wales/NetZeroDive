@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sector Bubbles</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --bg: #fef9f0;
+      --ink: #1a1612;
+      --axis: #6b5e50;
+      --grid: rgba(90, 75, 55, 0.15);
+      --panel: rgba(255,255,255,0.88);
+    }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(52, 211, 153, 0.18), transparent 32%),
+        radial-gradient(circle at 80% 5%, rgba(78, 154, 241, 0.22), transparent 30%),
+        linear-gradient(180deg, #fffbf5, #f5ece0 72%);
+    }
+
+    #chart { width: 100%; height: 100%; position: relative; }
+
+    .title { font-size: 20px; font-weight: 700; fill: var(--ink); letter-spacing: 0.01em; }
+    .subtitle { font-size: 12px; fill: #665f56; }
+
+    .axis text, .axis path, .axis line {
+      fill: var(--axis); stroke: var(--axis); font-size: 11px;
+    }
+
+    .grid line { stroke: var(--grid); stroke-dasharray: 4 5; }
+    .grid path { stroke: none; }
+
+    .sector-bubble {
+      stroke: rgba(30, 20, 10, 0.35); stroke-width: 0.8;
+      cursor: pointer; transition: opacity 220ms ease;
+    }
+
+    .sector-bubble.dimmed { opacity: 0.15 !important; }
+    .sector-bubble.focused { stroke: rgba(0,0,0,0.7); stroke-width: 2.5; }
+
+    .sector-label {
+      font-size: 11px; font-weight: 600;
+      fill: #515254;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke: rgba(255,255,255,0.7); stroke-width: 3;
+      pointer-events: none;
+    }
+
+    .year-tag {
+      font-size: 72px; font-weight: 700;
+      fill: rgba(120, 93, 64, 0.15);
+      text-anchor: end; pointer-events: none;
+    }
+
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(12, 10, 8, 0.9); color: #fffdf9;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.22);
+      padding: 8px 10px; font-size: 12px; line-height: 1.35;
+      opacity: 0; transition: opacity 120ms ease;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      white-space: nowrap; z-index: 5;
+    }
+
+    .legend {
+      position: absolute; top: 56px; left: 72px; right: 16px;
+      display: flex; flex-wrap: wrap; gap: 6px 18px;
+      font-size: 11px; line-height: 1.5; margin-bottom: 10px;
+    }
+
+    .year-controls {
+      position: absolute; right: 16px; bottom: 120px;
+      min-width: 220px; padding: 8px 10px;
+      border-radius: 10px; border: 1px solid rgba(31,27,22,0.14);
+      background: var(--panel); backdrop-filter: blur(2px);
+      font-size: 12px; opacity: 0; pointer-events: none;
+      transition: opacity 150ms ease; z-index: 7;
+    }
+
+    .year-controls.visible { opacity: 1; pointer-events: auto; }
+    .year-controls .label { display: block; margin-bottom: 6px; font-size: 12px; color: #4f483f; }
+    .year-controls input[type='range'] { width: 100%; accent-color: #2d7a5e; }
+
+    .legend-item { display: flex; align-items: center; gap: 7px; }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); flex: 0 0 10px; }
+
+    /* ── Info pane ── */
+    #info-pane {
+      position: fixed; left: 16px; bottom: 60px;
+      width: 236px;
+      background: rgba(255,255,255,0.97);
+      border-radius: 13px;
+      border: 1px solid rgba(31,27,22,0.11);
+      box-shadow: 0 4px 28px rgba(0,0,0,0.13);
+      padding: 0 0 12px;
+      font-size: 12px; line-height: 1.5;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 200ms ease, transform 200ms ease;
+      pointer-events: none; z-index: 6;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    #info-pane.visible { opacity: 1; transform: translateY(0); }
+    #ip-color-bar { height: 5px; width: 100%; margin-bottom: 10px; }
+    #ip-inner { padding: 0 14px; }
+    #ip-name { font-size: 13px; font-weight: 700; color: #1a1612; }
+    #ip-year { font-size: 11px; color: #9b8f83; margin-bottom: 9px; }
+    .ip-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 2px; }
+    .ip-label { color: #665f56; white-space: nowrap; }
+    .ip-nums  { text-align: right; }
+    .ip-val   { font-weight: 700; color: #1a1612; display: block; }
+    .ip-sub   { font-size: 10px; color: #a09285; display: block; }
+    #ip-bar-wrap { margin: 9px 0 3px; }
+    #ip-bar-track { height: 7px; border-radius: 4px; background: #ede5da; overflow: hidden; }
+    #ip-bar-fill  { height: 100%; border-radius: 4px; transition: width 280ms ease, background 280ms ease; }
+    #ip-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: #a09285; margin-top: 3px; margin-bottom: 9px; }
+    .ip-divider { height: 1px; background: #ede5da; margin: 8px 0; }
+    #ip-bodies { font-size: 11px; color: #8b7a68; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="legend" class="legend"></div>
+  <div id="year-controls" class="year-controls">
+    <label class="label">Year: <strong id="year-readout">2020</strong></label>
+    <input id="year-slider" type="range" min="2020" max="2025" step="0.1" value="2020" />
+  </div>
+
+  <div id="info-pane">
+    <div id="ip-color-bar"></div>
+    <div id="ip-inner">
+      <div id="ip-name"></div>
+      <div id="ip-year"></div>
+      <div class="ip-row">
+        <span class="ip-label">Total</span>
+        <div class="ip-nums"><span class="ip-val" id="ip-total"></span><span class="ip-sub" id="ip-total-pct"></span></div>
+      </div>
+      <div id="ip-bar-wrap">
+        <div id="ip-bar-track"><div id="ip-bar-fill"></div></div>
+        <div id="ip-bar-labels"><span id="ip-sc-bar-label"></span><span id="ip-dir-bar-label"></span></div>
+      </div>
+      <div class="ip-row">
+        <span class="ip-label">Supply chain</span>
+        <div class="ip-nums"><span class="ip-val" id="ip-sc"></span><span class="ip-sub" id="ip-sc-pct"></span></div>
+      </div>
+      <div class="ip-row">
+        <span class="ip-label">Direct</span>
+        <div class="ip-nums"><span class="ip-val" id="ip-dir"></span><span class="ip-sub" id="ip-dir-pct"></span></div>
+      </div>
+      <div class="ip-divider"></div>
+      <div id="ip-bodies"></div>
+    </div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const legend = d3.select('#legend');
+    const yearControls = d3.select('#year-controls');
+    const yearSlider = d3.select('#year-slider');
+    const yearReadout = d3.select('#year-readout');
+
+    const margin = { top: 105, right: 35, bottom: 55, left: 72 };
+
+    let svg, x, y, r, xAxisGroup, yAxisGroup, gridGroup, pointsGroup, yearTag;
+
+    let dataModel = null;
+    let sectorIndex = new Map();
+    let sectorYearIndex = new Map();
+
+    let currentYear = 2020;
+    let focusSectors = [];
+    let dimOthers = false;
+    let yearSliderEnabled = false;
+    let animationFrameId = null;
+    let currentTimelineTimeMs = 0;
+    let playbackIsPlaying = false;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+    let maxPcts = { x: 40, y: 20, r: 60 };
+
+    const MIN_YEAR = 2020;
+    const MAX_YEAR = 2025;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+    function standaloneDataUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const value = params.get('data') || params.get('dataUrl');
+      return value ? new URL(value, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    function showLoadError(message) {
+      root.selectAll('*').remove();
+      root.append('div')
+        .style('position', 'absolute').style('inset', '0')
+        .style('display', 'grid').style('place-items', 'center')
+        .style('padding', '24px').style('text-align', 'center')
+        .style('font-size', '14px').style('color', 'var(--ink)').text(message);
+    }
+
+    async function bootstrapStandalone() {
+      if (dataModel || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const response = await fetch(standaloneDataUrl());
+        if (!response.ok) throw new Error(`Data request failed: ${response.status}`);
+        const data = await response.json();
+        if (dataModel) return;
+        const latestNarrativeState = lastNarrativeState;
+        const latestNarrativeTimeMs = lastNarrativeTimeMs;
+        const latestPlaybackIsPlaying = playbackIsPlaying;
+        initialize(data);
+        playbackIsPlaying = latestPlaybackIsPlaying;
+        if (latestNarrativeState) {
+          lastNarrativeState = latestNarrativeState;
+          lastNarrativeTimeMs = latestNarrativeTimeMs;
+          applyState(latestNarrativeState, latestNarrativeTimeMs);
+        } else {
+          currentYear = MAX_YEAR;
+          yearSliderEnabled = true;
+          dimOthers = false;
+          focusSectors = [];
+          renderYear(false);
+        }
+        updateYearControls();
+      } catch (error) {
+        console.error('Sector Bubbles standalone bootstrap failed.', error);
+        showLoadError('Unable to load data. Pass ?data=... to override the default JSON path.');
+      }
+    }
+
+    function stopAnimation() {
+      if (animationFrameId !== null) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+    }
+
+    function buildIndices(data) {
+      sectorIndex = new Map();
+      sectorYearIndex = new Map();
+      for (const sector of data.sectorSeries || []) {
+        const id = sector.sectorId;
+        sectorIndex.set(id, sector);
+        const byYear = new Map();
+        for (const v of sector.values || []) byYear.set(v.year, v);
+        sectorYearIndex.set(id, byYear);
+      }
+    }
+
+    function interpolateSectorAtYear(sector, year) {
+      const id = sector.sectorId;
+      const byYear = sectorYearIndex.get(id);
+      if (!byYear) return null;
+      const clampedYear = clamp(year, MIN_YEAR, MAX_YEAR);
+      const floorYear = Math.floor(clampedYear);
+      const ceilYear = Math.min(MAX_YEAR, Math.ceil(clampedYear));
+      const start = byYear.get(floorYear);
+      const end = byYear.get(ceilYear) || start;
+      if (!start || !end) return null;
+      const t = ceilYear === floorYear ? 0 : (clampedYear - floorYear) / (ceilYear - floorYear);
+      return {
+        sectorId: id,
+        sectorName: sector.sectorName,
+        color: sector.color,
+        bodies: sector.bodies,
+        year: clampedYear,
+        supplyChain: start.supplyChain + (end.supplyChain - start.supplyChain) * t,
+        directEmissions: start.directEmissions + (end.directEmissions - start.directEmissions) * t,
+        total: start.total + (end.total - start.total) * t,
+      };
+    }
+
+    function buildScales(width, height) {
+      x = d3.scaleLinear().domain([0, maxPcts.x]).range([margin.left, width - margin.right]);
+      y = d3.scaleLinear().domain([0, maxPcts.y]).range([height - margin.bottom, margin.top]);
+      r = d3.scaleSqrt().domain([0, maxPcts.r]).range([8, 52]);
+    }
+
+    function setupSvg() {
+      root.selectAll('*').remove();
+      const width = root.node().clientWidth || 960;
+      const height = root.node().clientHeight || 560;
+
+      svg = root.append('svg')
+        .attr('width', width).attr('height', height)
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+      buildScales(width, height);
+
+      gridGroup = svg.append('g').attr('class', 'grid')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(6).tickSize(-(width - margin.left - margin.right)).tickFormat(() => ''));
+
+      xAxisGroup = svg.append('g').attr('class', 'axis')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(6).tickFormat(d => d3.format('.1f')(d) + '%'));
+
+      yAxisGroup = svg.append('g').attr('class', 'axis')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(6).tickFormat(d => d3.format('.1f')(d) + '%'));
+
+      pointsGroup = svg.append('g');
+
+      yearTag = svg.append('text').attr('class', 'year-tag')
+        .attr('x', width - margin.right).attr('y', height - margin.bottom - 10)
+        .text(Math.round(currentYear));
+
+      svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', 30)
+        .text('Sector Bubbles: Supply Chain vs. Direct Emissions');
+      svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', 49)
+        .text('Bubble size = total sector emissions. Hover for details.');
+
+      svg.append('text').attr('class', 'subtitle')
+        .attr('x', margin.left).attr('y', margin.top - 8)
+        .attr('text-anchor', 'start').text('Direct Emissions (% of total)');
+      svg.append('text').attr('class', 'subtitle')
+        .attr('x', width - margin.right).attr('y', height - 8)
+        .attr('text-anchor', 'end').text('Supply Chain Emissions (% of total)');
+
+      drawLegend();
+    }
+
+    function drawLegend() {
+      legend.selectAll('*').remove();
+      for (const sector of dataModel?.sectorSeries || []) {
+        const row = legend.append('div').attr('class', 'legend-item');
+        row.append('span').attr('class', 'legend-swatch').style('background', sector.color);
+        row.append('span').text(sector.sectorName);
+      }
+    }
+
+    function currentFocusSet() {
+      return new Set((focusSectors || []).map(s => String(s).toLowerCase()));
+    }
+
+    function notifyInteract() {
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'sector-bubbles' }, '*');
+    }
+
+    function updateYearControls() {
+      const show = yearSliderEnabled && !playbackIsPlaying;
+      yearControls.classed('visible', show);
+      yearSlider.property('value', String(clamp(currentYear, MIN_YEAR, MAX_YEAR)));
+      yearReadout.text(String(Math.round(currentYear)));
+    }
+
+    function sectorRows(year) {
+      if (!dataModel?.sectorSeries) return [];
+      const rows = dataModel.sectorSeries
+        .map(sector => interpolateSectorAtYear(sector, year))
+        .filter(Boolean)
+        .sort((a, b) => b.total - a.total);
+      const grandTotal = rows.reduce((sum, d) => sum + d.total, 0);
+      for (const d of rows) {
+        d.supplyChainPct = grandTotal > 0 ? d.supplyChain / grandTotal * 100 : 0;
+        d.directPct      = grandTotal > 0 ? d.directEmissions / grandTotal * 100 : 0;
+        d.totalPct       = grandTotal > 0 ? d.total / grandTotal * 100 : 0;
+      }
+      return rows;
+    }
+
+    function renderYear(animate = true) {
+      const rows = sectorRows(currentYear);
+      const focusSet = currentFocusSet();
+
+      // Bind groups (one per sector)
+      const groups = pointsGroup.selectAll('g.sector-group')
+        .data(rows, d => d.sectorId)
+        .join(
+          enter => {
+            const g = enter.append('g').attr('class', 'sector-group')
+              .attr('transform', d => `translate(${x(d.supplyChainPct)},${y(d.directPct)})`);
+            g.append('circle').attr('class', 'sector-bubble').attr('r', 0)
+              .attr('fill', d => d.color)
+              .call(sel => sel.transition().duration(250).attr('r', d => r(d.totalPct)));
+            g.append('text').attr('class', 'sector-label').attr('dy', '0.35em')
+              .each(function(d) {
+                const words = d.sectorName.split(' ');
+                const el = d3.select(this);
+                if (words.length === 1) {
+                  el.text(words[0]);
+                } else {
+                  el.append('tspan').attr('x', 0).attr('dy', words.length > 2 ? '-0.7em' : '-0.35em').text(words.slice(0, Math.ceil(words.length/2)).join(' '));
+                  el.append('tspan').attr('x', 0).attr('dy', '1.2em').text(words.slice(Math.ceil(words.length/2)).join(' '));
+                }
+              });
+            return g;
+          },
+          update => update,
+          exit => exit.transition().duration(200).style('opacity', 0).remove()
+        );
+
+      groups.select('circle.sector-bubble')
+        .classed('dimmed', d => dimOthers && focusSet.size > 0 && !focusSet.has(d.sectorId))
+        .classed('focused', d => focusSet.size > 0 && focusSet.has(d.sectorId))
+        .style('opacity', d => {
+          if (!dimOthers || focusSet.size === 0) return 0.88;
+          return focusSet.has(d.sectorId) ? 1 : 0.15;
+        })
+        .on('mousemove', (event, d) => {
+          tooltip.style('opacity', 1)
+            .style('left', `${Math.min(event.offsetX + 14, root.node().clientWidth - 180)}px`)
+            .style('top', `${Math.max(8, event.offsetY - 28)}px`)
+            .html(`<strong>${d.sectorName}</strong>`);
+          showInfoPane(d);
+        })
+        .on('mouseleave', () => { tooltip.style('opacity', 0); hideInfoPane(); })
+        .on('click', () => notifyInteract());
+
+      if (animate) {
+        groups.transition().duration(350).ease(d3.easeCubicOut)
+          .attr('transform', d => `translate(${x(d.supplyChainPct)},${y(d.directPct)})`)
+          .select('circle.sector-bubble').attr('r', d => r(d.totalPct));
+        groups.select('text.sector-label').transition().duration(350).ease(d3.easeCubicOut)
+          .attr('transform', null);
+      } else {
+        groups.attr('transform', d => `translate(${x(d.supplyChainPct)},${y(d.directPct)})`);
+        groups.select('circle.sector-bubble').attr('r', d => r(d.totalPct));
+      }
+
+      yearTag.text(Math.round(currentYear));
+      updateYearControls();
+    }
+
+    function animateYears(fromYear, toYear, duration) {
+      stopAnimation();
+      const start = performance.now();
+      const minY = Math.min(fromYear, toYear);
+      const maxY = Math.max(fromYear, toYear);
+      function frame(now) {
+        const elapsed = now - start;
+        const progress = clamp(elapsed / Math.max(1, duration), 0, 1);
+        const nextYear = fromYear + (toYear - fromYear) * progress;
+        const clampedYear = clamp(nextYear, minY, maxY);
+        if (Math.abs(clampedYear - currentYear) > 0.001) { currentYear = clampedYear; renderYear(false); }
+        if (progress < 1) animationFrameId = requestAnimationFrame(frame);
+        else animationFrameId = null;
+      }
+      animationFrameId = requestAnimationFrame(frame);
+    }
+
+    function resolveInterpolatedYear(state, timeMs) {
+      const fromYear = clamp(Number(state.fromYear || MIN_YEAR), MIN_YEAR, MAX_YEAR);
+      const toYear = clamp(Number(state.toYear || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+      const segmentStart = Number(state.segmentStartTimeMs);
+      const segmentEnd = Number(state.segmentEndTimeMs);
+      if (state.streamTime && Number.isFinite(timeMs) && Number.isFinite(segmentStart) && Number.isFinite(segmentEnd) && segmentEnd > segmentStart) {
+        const progress = clamp((timeMs - segmentStart) / (segmentEnd - segmentStart), 0, 1);
+        return fromYear + (toYear - fromYear) * progress;
+      }
+      return fromYear;
+    }
+
+    function applyState(state, timeMs, options = {}) {
+      if (!dataModel || !state) return;
+      const action = state.action || 'setYear';
+
+      if (Number.isFinite(timeMs)) currentTimelineTimeMs = Number(timeMs);
+
+      if (Array.isArray(state.focusSectors)) focusSectors = state.focusSectors;
+      if (typeof state.dimOthers === 'boolean') dimOthers = state.dimOthers;
+      if (typeof state.yearSlider === 'boolean') yearSliderEnabled = state.yearSlider;
+
+      if (action === 'setYear') {
+        stopAnimation();
+        currentYear = clamp(Number(state.year || MIN_YEAR), MIN_YEAR, MAX_YEAR);
+        renderYear(true);
+      } else if (action === 'playYears') {
+        if (state.streamTime && Number.isFinite(timeMs)) {
+          const interpolated = resolveInterpolatedYear(state, timeMs);
+          if (Math.abs(interpolated - currentYear) > 0.01) {
+            currentYear = interpolated;
+            renderYear(false);
+          }
+        } else {
+          const fromYear = clamp(Number(state.fromYear || MIN_YEAR), MIN_YEAR, MAX_YEAR);
+          const toYear = clamp(Number(state.toYear || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+          const duration = Number(state.duration || 5000);
+          animateYears(fromYear, toYear, duration);
+        }
+      } else if (action === 'freezeYear') {
+        stopAnimation();
+        currentYear = clamp(Number(state.year || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+        renderYear(true);
+      }
+
+      updateYearControls();
+    }
+
+    function initialize(data) {
+      if (!data || !data.sectorSeries) return;
+      dataModel = data;
+      buildIndices(data);
+      // Compute percentage scale domains across all years so axes stay stable during animation
+      let maxScPct = 0, maxDirPct = 0, maxTotPct = 0;
+      for (let yr = MIN_YEAR; yr <= MAX_YEAR; yr++) {
+        const rows = data.sectorSeries.map(s => interpolateSectorAtYear(s, yr)).filter(Boolean);
+        const gt = rows.reduce((sum, d) => sum + d.total, 0);
+        if (gt > 0) for (const d of rows) {
+          maxScPct  = Math.max(maxScPct,  d.supplyChain     / gt * 100);
+          maxDirPct = Math.max(maxDirPct, d.directEmissions / gt * 100);
+          maxTotPct = Math.max(maxTotPct, d.total           / gt * 100);
+        }
+      }
+      maxPcts = { x: (maxScPct || 30) * 1.25, y: (maxDirPct || 15) * 1.25, r: maxTotPct || 60 };
+      setupSvg();
+      renderYear(false);
+    }
+
+    // ── Info pane ──────────────────────────────────────────────────────────
+    const infoPane = document.getElementById('info-pane');
+
+    function showInfoPane(d) {
+      const scShare = d.total > 0 ? d.supplyChain / d.total * 100 : 0;
+      const dirShare = 100 - scShare;
+      document.getElementById('ip-color-bar').style.background = d.color;
+      document.getElementById('ip-name').textContent = d.sectorName;
+      document.getElementById('ip-year').textContent = 'Year: ' + Math.round(d.year);
+      document.getElementById('ip-total').textContent = d3.format(',.0f')(d.total) + ' ktCO\u2082e';
+      document.getElementById('ip-total-pct').textContent = d3.format('.1f')(d.totalPct) + '% of all emissions';
+      document.getElementById('ip-bar-fill').style.width = scShare.toFixed(1) + '%';
+      document.getElementById('ip-bar-fill').style.background = d.color;
+      document.getElementById('ip-sc-bar-label').textContent = 'SC ' + scShare.toFixed(0) + '%';
+      document.getElementById('ip-dir-bar-label').textContent = 'Direct ' + dirShare.toFixed(0) + '%';
+      document.getElementById('ip-sc').textContent = d3.format(',.0f')(d.supplyChain) + ' ktCO\u2082e';
+      document.getElementById('ip-sc-pct').textContent = d3.format('.1f')(d.supplyChainPct) + '% of all';
+      document.getElementById('ip-dir').textContent = d3.format(',.0f')(d.directEmissions) + ' ktCO\u2082e';
+      document.getElementById('ip-dir-pct').textContent = d3.format('.1f')(d.directPct) + '% of all';
+      document.getElementById('ip-bodies').textContent = d.bodies + ' reporting bodies';
+      infoPane.classList.add('visible');
+    }
+    function hideInfoPane() { infoPane.classList.remove('visible'); }
+
+    yearSlider.on('input', function() {
+      notifyInteract();
+      currentYear = clamp(parseFloat(this.value), MIN_YEAR, MAX_YEAR);
+      yearReadout.text(String(Math.round(currentYear)));
+      renderYear(false);
+    });
+
+    window.addEventListener('resize', () => { if (!dataModel) return; setupSvg(); renderYear(false); });
+
+    window.addEventListener('message', event => {
+      const payload = event.data;
+      if (!payload || !payload.type) return;
+      if (payload.type === 'DIVE_INIT') {
+        initialize(payload.data);
+      } else if (payload.type === 'DIVE_STATE') {
+        lastNarrativeState = payload.state || {};
+        lastNarrativeTimeMs = Number.isFinite(payload.time) ? Number(payload.time) : currentTimelineTimeMs;
+        if (!dataModel) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      } else if (payload.type === 'DIVE_PLAYBACK') {
+        const next = Boolean(payload.isPlaying);
+        const didResume = !playbackIsPlaying && next;
+        playbackIsPlaying = next;
+        if (!dataModel) { bootstrapStandalone(); return; }
+        if (didResume && lastNarrativeState) applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+
+    window.setTimeout(() => { if (!dataModel) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

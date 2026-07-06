@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emission Sources by Sector</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --bg-1: #07110a;
+      --bg-2: #0d2218;
+      --fg: #f0fff8;
+      --muted: #8ecfb0;
+      --grid: rgba(120, 200, 150, 0.15);
+      --panel: rgba(6, 18, 12, 0.85);
+    }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--fg);
+      background:
+        radial-gradient(circle at 85% 15%, rgba(52, 211, 153, 0.16), transparent 35%),
+        radial-gradient(circle at 12% 75%, rgba(78, 154, 241, 0.12), transparent 30%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+    }
+
+    #chart { width: 100%; height: 100%; position: relative; }
+
+    .title { font-size: 20px; font-weight: 600; letter-spacing: 0.02em; fill: var(--fg); }
+    .subtitle { font-size: 12px; fill: var(--muted); }
+
+    .axis text { fill: var(--muted); font-size: 11px; }
+    .axis path, .axis line { stroke: rgba(140, 200, 170, 0.3); }
+    .axis.sector-axis text { fill: var(--fg); font-size: 13px; font-weight: 500; }
+
+    .grid line { stroke: var(--grid); stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+
+    .bar-segment { transition: opacity 180ms ease; cursor: default; }
+    .bar-segment.dimmed { opacity: 0.2; }
+    .bar-segment.highlighted { filter: brightness(1.25); }
+
+    .sector-total-label { fill: var(--muted); font-size: 11px; font-weight: 500; }
+
+    .annotation-line { stroke: #ffb36b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .annotation-text { fill: #ffb36b; font-size: 11px; font-weight: 600; }
+
+    .year-badge {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 52px; font-weight: 700;
+      color: rgba(52, 211, 153, 0.18);
+      pointer-events: none; letter-spacing: -0.02em;
+      font-family: "IBM Plex Sans", sans-serif;
+    }
+
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(4, 14, 10, 0.94);
+      border: 1px solid rgba(100, 220, 150, 0.3);
+      border-radius: 9px; padding: 8px 12px;
+      font-size: 12px; line-height: 1.5;
+      color: var(--fg); opacity: 0;
+      transition: opacity 120ms ease;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+      white-space: nowrap; z-index: 8;
+    }
+
+    .legend {
+      position: absolute; bottom: 14px; right: 14px;
+      background: var(--panel);
+      border: 1px solid rgba(100, 220, 150, 0.2);
+      border-radius: 10px; padding: 8px 12px;
+      font-size: 11px; line-height: 1.7;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .legend-row { display: flex; align-items: center; gap: 7px; color: var(--muted); cursor: pointer; }
+    .legend-row:hover { color: var(--fg); }
+    .legend-row.active { color: var(--fg); font-weight: 600; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex: 0 0 12px; }
+
+    .year-controls {
+      position: absolute; right: 14px; top: 80px;
+      min-width: 200px; padding: 8px 12px;
+      border-radius: 10px; background: var(--panel);
+      border: 1px solid rgba(100, 220, 150, 0.2);
+      font-size: 12px; opacity: 0; pointer-events: none;
+      transition: opacity 150ms ease; z-index: 7;
+    }
+    .year-controls.visible { opacity: 1; pointer-events: auto; }
+    .year-controls .label { display: block; margin-bottom: 6px; color: var(--muted); }
+    .year-controls input[type='range'] { width: 100%; accent-color: #34d399; }
+
+    .pct-toggle {
+      position: absolute; left: 14px; bottom: 14px;
+      background: var(--panel); border: 1px solid rgba(100, 220, 150, 0.25);
+      color: var(--muted); border-radius: 6px; padding: 5px 10px;
+      font-size: 11px; cursor: pointer; transition: color 150ms ease;
+    }
+    .pct-toggle:hover, .pct-toggle.active { color: var(--fg); border-color: rgba(52, 211, 153, 0.5); }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="year-badge" class="year-badge">2025</div>
+  <div id="legend" class="legend"></div>
+  <div id="year-controls" class="year-controls">
+    <label class="label">Year: <strong id="year-readout">2025</strong></label>
+    <input id="year-slider" type="range" min="2020" max="2025" step="0.1" value="2025" />
+  </div>
+  <button id="pct-toggle" class="pct-toggle">% View</button>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const yearBadge = document.getElementById('year-badge');
+    const legendEl = d3.select('#legend');
+    const yearControls = d3.select('#year-controls');
+    const yearSlider = d3.select('#year-slider');
+    const yearReadout = d3.select('#year-readout');
+    const pctToggleBtn = document.getElementById('pct-toggle');
+
+    const SOURCES = [
+      { id: 'supply_chain',  label: 'Supply Chain',  color: '#c0392b' },
+      { id: 'buildings',     label: 'Buildings',     color: '#2980b9' },
+      { id: 'transport',     label: 'Transport',     color: '#d4860a' },
+      { id: 'medical_gases', label: 'Medical Gases', color: '#7e57c2' },
+      { id: 'waste',         label: 'Waste',         color: '#2e7d5e' },
+    ];
+    const SOURCE_IDS = SOURCES.map(s => s.id);
+    const SOURCE_COLORS = Object.fromEntries(SOURCES.map(s => [s.id, s.color]));
+
+    const margin = { top: 72, right: 30, bottom: 48, left: 158 };
+    const MIN_YEAR = 2020, MAX_YEAR = 2025;
+
+    let svg, x, y, xAxisGroup, yAxisGroup, gridGroup, barsGroup, labelsGroup, annotationGroup;
+    let dataModel = null;
+    let sectorYearIndex = new Map();
+    let sourceYearIndex = new Map();
+
+    let currentYear = 2025;
+    let showPercent = false;
+    let highlightSource = null;
+    let yearSliderEnabled = false;
+    let animationFrameId = null;
+    let currentTimelineTimeMs = 0;
+    let playbackIsPlaying = false;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function standaloneDataUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const value = params.get('data') || params.get('dataUrl');
+      return value ? new URL(value, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    function showLoadError(message) {
+      root.selectAll('*').remove();
+      root.append('div')
+        .style('position', 'absolute').style('inset', '0').style('display', 'grid')
+        .style('place-items', 'center').style('padding', '24px').style('text-align', 'center')
+        .style('font-size', '14px').style('color', 'var(--fg)').text(message);
+    }
+
+    async function bootstrapStandalone() {
+      if (dataModel || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const pendingState = lastNarrativeState;
+        const pendingTimeMs = lastNarrativeTimeMs;
+        const response = await fetch(standaloneDataUrl());
+        if (!response.ok) throw new Error(`Data request failed: ${response.status}`);
+        const data = await response.json();
+        if (dataModel) return;
+        initialize(data);
+        if (pendingState) { applyState(pendingState, pendingTimeMs); }
+        else { currentYear = MAX_YEAR; yearSliderEnabled = true; renderBars(false); updateControls(); }
+      } catch (err) {
+        console.error('Stacked Bars standalone bootstrap failed.', err);
+        showLoadError('Unable to load data. Pass ?data=... to override the default JSON path.');
+      }
+    }
+
+    function buildIndices(data) {
+      sectorYearIndex = new Map();
+      for (const sector of data.sectorSeries || []) {
+        const byYear = new Map();
+        for (const v of sector.values || []) byYear.set(v.year, v);
+        sectorYearIndex.set(sector.sectorId, { ...sector, byYear });
+      }
+      sourceYearIndex = new Map();
+      for (const source of data.emissionsTrend || []) {
+        const byYear = new Map();
+        for (const v of source.values || []) byYear.set(v.year, v.ktco2e);
+        sourceYearIndex.set(source.sourceId, byYear);
+      }
+    }
+
+    function interpolateSector(sectorId, year) {
+      const entry = sectorYearIndex.get(sectorId);
+      if (!entry) return null;
+      const clamped = clamp(year, MIN_YEAR, MAX_YEAR);
+      const floor = Math.floor(clamped), ceil = Math.min(MAX_YEAR, Math.ceil(clamped));
+      const a = entry.byYear.get(floor), b = entry.byYear.get(ceil) || a;
+      if (!a || !b) return null;
+      const t = ceil === floor ? 0 : (clamped - floor) / (ceil - floor);
+      return {
+        sectorId,
+        sectorName: entry.sectorName,
+        color: entry.color,
+        total: a.total + (b.total - a.total) * t,
+        supplyChain: a.supplyChain + (b.supplyChain - a.supplyChain) * t,
+        directEmissions: a.directEmissions + (b.directEmissions - a.directEmissions) * t,
+      };
+    }
+
+    function interpolateSource(sourceId, year) {
+      const byYear = sourceYearIndex.get(sourceId);
+      if (!byYear) return 0;
+      const clamped = clamp(year, MIN_YEAR, MAX_YEAR);
+      const floor = Math.floor(clamped), ceil = Math.min(MAX_YEAR, Math.ceil(clamped));
+      const a = byYear.get(floor) || 0, b = byYear.get(ceil) || a;
+      const t = ceil === floor ? 0 : (clamped - floor) / (ceil - floor);
+      return a + (b - a) * t;
+    }
+
+    function computeStackData(year) {
+      // Compute overall source fractions
+      const sourceTotals = {};
+      let overallTotal = 0;
+      for (const src of SOURCES) {
+        sourceTotals[src.id] = interpolateSource(src.id, year);
+        overallTotal += sourceTotals[src.id];
+      }
+      const fractions = {};
+      for (const src of SOURCES) fractions[src.id] = overallTotal > 0 ? sourceTotals[src.id] / overallTotal : 0;
+
+      // Build per-sector breakdown
+      return (dataModel.sectorSeries || []).map(sector => {
+        const s = interpolateSector(sector.sectorId, year);
+        if (!s) return null;
+        const sc = s.supplyChain;
+        const build = s.total * fractions.buildings;
+        const trans = s.total * fractions.transport;
+        const med = s.total * fractions.medical_gases;
+        const waste = Math.max(0, s.total - sc - build - trans - med);
+        return {
+          sectorId: s.sectorId,
+          sectorName: s.sectorName,
+          total: s.total,
+          supply_chain: sc,
+          buildings: build,
+          transport: trans,
+          medical_gases: med,
+          waste,
+        };
+      }).filter(Boolean).sort((a, b) => b.total - a.total);
+    }
+
+    function setupChart() {
+      root.selectAll('*').remove();
+      const width = root.node().clientWidth || 960;
+      const height = root.node().clientHeight || 540;
+
+      svg = root.append('svg')
+        .attr('width', width).attr('height', height)
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      x = d3.scaleLinear().domain([0, 2000]).range([0, innerW]);
+      y = d3.scaleBand()
+        .domain((dataModel.sectorSeries || []).map(s => s.sectorId).sort((a, b) => {
+          const totA = computeStackData(currentYear).find(d => d.sectorId === a)?.total || 0;
+          const totB = computeStackData(currentYear).find(d => d.sectorId === b)?.total || 0;
+          return totB - totA;
+        }))
+        .range([0, innerH]).padding(0.28);
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      gridGroup = g.append('g').attr('class', 'grid').attr('transform', `translate(0,${innerH})`);
+      barsGroup = g.append('g').attr('class', 'bars');
+      labelsGroup = g.append('g').attr('class', 'labels');
+      annotationGroup = g.append('g').attr('class', 'annotation').style('opacity', 0);
+
+      xAxisGroup = g.append('g').attr('class', 'axis')
+        .attr('transform', `translate(0,${innerH})`)
+        .call(d3.axisBottom(x).ticks(6).tickFormat(d => showPercent ? d + '%' : d3.format(',.0f')(d)));
+
+      yAxisGroup = g.append('g').attr('class', 'axis sector-axis')
+        .call(d3.axisLeft(y).tickFormat(id => {
+          const s = dataModel?.sectorSeries?.find(s => s.sectorId === id);
+          return s ? s.sectorName : id;
+        }).tickSize(0))
+        .call(gg => gg.select('.domain').remove())
+        .call(gg => gg.selectAll('.tick line').remove())
+        .call(gg => gg.selectAll('.tick text').attr('x', -10));
+
+      svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', 30)
+        .text('Emission Sources by Sector');
+      svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', 49)
+        .text('Stacked by source type. Hover for details. Click legend to highlight.');
+      svg.append('text').attr('class', 'subtitle')
+        .attr('x', margin.left + innerW).attr('y', margin.top + innerH + 36)
+        .attr('text-anchor', 'end')
+        .text(showPercent ? 'Share of sector emissions (%)' : 'Emissions (ktCO₂e)');
+
+      drawLegend();
+    }
+
+    function drawLegend() {
+      legendEl.selectAll('*').remove();
+      for (const src of SOURCES) {
+        const row = legendEl.append('div').attr('class', `legend-row${highlightSource === src.id ? ' active' : ''}`)
+          .style('cursor', 'pointer')
+          .on('click', () => {
+            notifyInteract();
+            highlightSource = highlightSource === src.id ? null : src.id;
+            drawLegend();
+            renderBars(false);
+          });
+        row.append('span').attr('class', 'legend-swatch').style('background', src.color);
+        row.append('span').text(src.label);
+      }
+    }
+
+    function renderBars(animate = true) {
+      if (!dataModel || !svg) return;
+
+      const width = root.node().clientWidth || 960;
+      const height = root.node().clientHeight || 540;
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      const rows = computeStackData(currentYear);
+      const maxTotal = showPercent ? 100 : d3.max(rows, d => d.total) || 2000;
+
+      x.domain([0, showPercent ? 100 : Math.max(2000, maxTotal * 1.05)]);
+
+      // Update grid
+      gridGroup.call(
+        d3.axisBottom(x).ticks(6).tickSize(-innerH).tickFormat(() => '')
+      );
+
+      xAxisGroup.transition().duration(animate ? 350 : 0)
+        .call(d3.axisBottom(x).ticks(6).tickFormat(d => showPercent ? d + '%' : d3.format(',.0f')(d)));
+
+      // Stack the data
+      const stackGen = d3.stack().keys(SOURCE_IDS);
+      const rowObjects = rows.map(d => {
+        const total = d.total;
+        if (showPercent) {
+          const obj = { sectorId: d.sectorId, total };
+          for (const id of SOURCE_IDS) obj[id] = total > 0 ? (d[id] / total) * 100 : 0;
+          return obj;
+        }
+        return { sectorId: d.sectorId, total, ...Object.fromEntries(SOURCE_IDS.map(id => [id, d[id]])) };
+      });
+
+      const stacked = stackGen(rowObjects);
+
+      // Draw bars
+      const layerSel = barsGroup.selectAll('g.layer')
+        .data(stacked, d => d.key)
+        .join('g').attr('class', 'layer');
+
+      const duration = animate ? 400 : 0;
+
+      layerSel.selectAll('rect.bar-segment')
+        .data(d => d.map(seg => ({ key: d.key, sectorId: seg.data.sectorId, x0: seg[0], x1: seg[1], total: seg.data.total })), d => d.sectorId)
+        .join(
+          enter => enter.append('rect').attr('class', 'bar-segment')
+            .attr('x', d => x(d.x0)).attr('width', 0)
+            .attr('y', d => y(d.sectorId)).attr('height', y.bandwidth())
+            .attr('fill', d => SOURCE_COLORS[d.key]),
+          update => update,
+          exit => exit.transition().duration(duration).attr('width', 0).remove()
+        )
+        .attr('y', d => y(d.sectorId)).attr('height', y.bandwidth())
+        .attr('fill', d => SOURCE_COLORS[d.key])
+        .classed('dimmed', d => highlightSource !== null && d.key !== highlightSource)
+        .classed('highlighted', d => highlightSource !== null && d.key === highlightSource)
+        .on('mousemove', (event, d) => {
+          const row = rows.find(r => r.sectorId === d.sectorId);
+          const srcLabel = SOURCES.find(s => s.id === d.key)?.label || d.key;
+          const val = row ? row[d.key] : 0;
+          tooltip.style('opacity', 1)
+            .style('left', `${Math.min(event.offsetX + 14, root.node().clientWidth - 260)}px`)
+            .style('top', `${Math.max(8, event.offsetY - 48)}px`)
+            .html(
+              `<strong>${SOURCES.find(s => s.id === d.sectorId)?.label || d.sectorId}</strong> · <span style="color:${SOURCE_COLORS[d.key]}">${srcLabel}</span><br/>` +
+              `${d3.format(',.0f')(val)} ktCO₂e` +
+              (row ? ` (${d3.format('.0f')(val / row.total * 100)}% of sector)` : '')
+            );
+        })
+        .on('mouseleave', () => tooltip.style('opacity', 0))
+        .transition().duration(duration).ease(d3.easeCubicOut)
+        .attr('x', d => x(d.x0))
+        .attr('width', d => Math.max(0, x(d.x1) - x(d.x0)));
+
+      // Total labels at end of each bar
+      labelsGroup.selectAll('text.sector-total-label')
+        .data(rows, d => d.sectorId)
+        .join('text').attr('class', 'sector-total-label')
+        .attr('y', d => (y(d.sectorId) || 0) + y.bandwidth() / 2 + 4)
+        .transition().duration(duration).ease(d3.easeCubicOut)
+        .attr('x', d => x(showPercent ? 100 : d.total) + 6)
+        .text(d => showPercent ? '' : `${d3.format(',.0f')(d.total)} kt`);
+
+      // Supply chain % annotation (only in absolute view at 2025)
+      annotationGroup.selectAll('*').remove();
+      if (!showPercent && Math.round(currentYear) >= 2024) {
+        const scFrac = rows.reduce((sum, r) => sum + r.supply_chain, 0) /
+                       rows.reduce((sum, r) => sum + r.total, 0);
+        const annX = x(rows.reduce((sum, r) => sum + r.supply_chain, 0) / rows.length);
+        annotationGroup.append('line').attr('class', 'annotation-line')
+          .attr('x1', annX).attr('x2', annX)
+          .attr('y1', -8).attr('y2', innerH);
+        annotationGroup.append('text').attr('class', 'annotation-text')
+          .attr('x', annX + 6).attr('y', -2)
+          .text(`Supply chain avg: ${d3.format('.0f')(scFrac * 100)}%`);
+        annotationGroup.style('opacity', 1);
+      } else {
+        annotationGroup.style('opacity', 0);
+      }
+
+      yearBadge.textContent = Math.round(currentYear);
+      yearReadout.text(String(Math.round(currentYear)));
+      yearSlider.property('value', String(clamp(currentYear, MIN_YEAR, MAX_YEAR)));
+    }
+
+    function updateControls() {
+      yearControls.classed('visible', yearSliderEnabled && !playbackIsPlaying);
+      pctToggleBtn.classList.toggle('active', showPercent);
+    }
+
+    function stopAnimation() {
+      if (animationFrameId !== null) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+    }
+
+    function animateYears(fromYear, toYear, duration) {
+      stopAnimation();
+      const start = performance.now();
+      function frame(now) {
+        const progress = clamp((now - start) / Math.max(1, duration), 0, 1);
+        const nextYear = fromYear + (toYear - fromYear) * progress;
+        currentYear = clamp(nextYear, Math.min(fromYear, toYear), Math.max(fromYear, toYear));
+        renderBars(false);
+        if (progress < 1) animationFrameId = requestAnimationFrame(frame);
+        else animationFrameId = null;
+      }
+      animationFrameId = requestAnimationFrame(frame);
+    }
+
+    function notifyInteract() {
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'stacked-bars' }, '*');
+    }
+
+    function applyState(state, timeMs) {
+      if (!dataModel || !state) return;
+      if (Number.isFinite(timeMs)) currentTimelineTimeMs = Number(timeMs);
+
+      if (typeof state.highlightSource !== 'undefined') {
+        highlightSource = state.highlightSource || null;
+        drawLegend();
+      }
+      if (typeof state.yearSlider === 'boolean') yearSliderEnabled = state.yearSlider;
+      if (typeof state.showPercent === 'boolean') {
+        showPercent = state.showPercent;
+        pctToggleBtn.classList.toggle('active', showPercent);
+      }
+
+      const action = state.action || 'setYear';
+
+      if (action === 'setYear') {
+        stopAnimation();
+        currentYear = clamp(Number(state.year || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+        renderBars(true);
+      } else if (action === 'playYears') {
+        if (state.streamTime && Number.isFinite(timeMs)) {
+          const fromY = clamp(Number(state.fromYear || MIN_YEAR), MIN_YEAR, MAX_YEAR);
+          const toY = clamp(Number(state.toYear || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+          const segStart = Number(state.segmentStartTimeMs);
+          const segEnd = Number(state.segmentEndTimeMs);
+          if (segEnd > segStart) {
+            const progress = clamp((timeMs - segStart) / (segEnd - segStart), 0, 1);
+            currentYear = fromY + (toY - fromY) * progress;
+          }
+          renderBars(false);
+        } else {
+          const fromY = clamp(Number(state.fromYear || MIN_YEAR), MIN_YEAR, MAX_YEAR);
+          const toY = clamp(Number(state.toYear || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+          animateYears(fromY, toY, Number(state.duration || 8000));
+        }
+      } else if (action === 'freezeYear') {
+        stopAnimation();
+        currentYear = clamp(Number(state.year || MAX_YEAR), MIN_YEAR, MAX_YEAR);
+        renderBars(true);
+      }
+
+      updateControls();
+    }
+
+    function initialize(data) {
+      if (!data || !data.sectorSeries || !data.emissionsTrend) return;
+      dataModel = data;
+      buildIndices(data);
+      currentYear = MAX_YEAR;
+      setupChart();
+      renderBars(false);
+    }
+
+    yearSlider.on('input', function() {
+      notifyInteract();
+      currentYear = clamp(parseFloat(this.value), MIN_YEAR, MAX_YEAR);
+      renderBars(false);
+      updateControls();
+    });
+
+    pctToggleBtn.addEventListener('click', () => {
+      notifyInteract();
+      showPercent = !showPercent;
+      pctToggleBtn.classList.toggle('active', showPercent);
+      if (svg) {
+        xAxisGroup.call(d3.axisBottom(x).ticks(6).tickFormat(d => showPercent ? d + '%' : d3.format(',.0f')(d)));
+      }
+      renderBars(true);
+    });
+
+    window.addEventListener('resize', () => { if (!dataModel) return; setupChart(); renderBars(false); });
+
+    window.addEventListener('message', event => {
+      const payload = event.data;
+      if (!payload || !payload.type) return;
+      if (payload.type === 'DIVE_INIT') {
+        initialize(payload.data);
+      } else if (payload.type === 'DIVE_STATE') {
+        lastNarrativeState = payload.state || {};
+        lastNarrativeTimeMs = Number.isFinite(payload.time) ? Number(payload.time) : currentTimelineTimeMs;
+        if (!dataModel) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      } else if (payload.type === 'DIVE_PLAYBACK') {
+        const next = Boolean(payload.isPlaying);
+        const didResume = !playbackIsPlaying && next;
+        playbackIsPlaying = next;
+        if (!dataModel) { bootstrapStandalone(); return; }
+        if (didResume && lastNarrativeState) applyState(lastNarrativeState, lastNarrativeTimeMs);
+        updateControls();
+      }
+    });
+
+    window.setTimeout(() => { if (!dataModel) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

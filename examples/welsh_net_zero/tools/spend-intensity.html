@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spend vs Carbon Intensity</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    #chart { width: 100%; height: 100%; position: relative; }
+    .title    { font-size: 20px; font-weight: 600; fill: #111827; }
+    .subtitle { font-size: 15px; fill: #6b7280; font-family: Arial, sans-serif; }
+    .axis text { fill: #6b7280; font-size: 13px; }
+    .axis path, .axis line { stroke: #d1d5db; }
+    .axis-right text { fill: #F4633A; font-weight: 600; }
+    .axis-right path, .axis-right line { stroke: rgba(244,99,58,0.3); }
+    .grid line { stroke: #e5e7eb; stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+    .bar { fill: #c4cdd6; }
+    .intensity-path { fill: none; stroke: #F4633A; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .annotation-line { stroke: #515254; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .annotation-text { font-size: 13px; fill: #515254; font-family: Arial, sans-serif; }
+    .bar-label { font-size: 11px; font-weight: 600; fill: #515254; text-anchor: middle; font-family: Arial, sans-serif; }
+    .legend {
+      position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 22px;
+    }
+    .legend-row   { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+    .legend-swatch-bar  { width: 14px; height: 10px; background: #c4cdd6; border-radius: 2px; }
+    .legend-swatch-line { width: 20px; height: 3px; background: #F4633A; border-radius: 2px; }
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(17,24,39,0.92); color: #f9fafb;
+      border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 1.5;
+      opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 8;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div class="legend">
+    <div class="legend-row"><span class="legend-swatch-bar"></span>Spend (&#163;bn)</div>
+    <div class="legend-row"><span class="legend-swatch-line"></span>Carbon intensity (kgCO₂e/£)</div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const margin = { top: 88, right: 80, bottom: 60, left: 72 };
+    let svg, xScale, yLeft, yRight, barsG, lineG, annotG, penG;
+    let chartData = null;
+    let revealYear = 2020;
+    let currentTimelineTimeMs = 0;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        initialize(data);
+        if (lastNarrativeState) applyState(lastNarrativeState, lastNarrativeTimeMs);
+        else { revealYear = 2020; render(); animateStandalone(); }
+      } catch(e) {
+        console.error('Spend intensity bootstrap failed', e);
+        root.append('div').style('position','absolute').style('inset','0')
+          .style('display','grid').style('place-items','center')
+          .style('font-size','14px').style('color','#374151').text('Unable to load data.');
+      }
+    }
+
+    function animateStandalone() {
+      const duration = 3000;
+      const start = performance.now();
+      function frame(now) {
+        const t = Math.min(1, (now - start) / duration);
+        // easeInOutCubic
+        revealYear = 2020 + 5 * (t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
+        render();
+        if (t < 1) requestAnimationFrame(frame);
+        else { revealYear = 2025; render(); }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function setupChart() {
+      root.selectAll('svg').remove();
+      const W = root.node().clientWidth || 960;
+      const H = root.node().clientHeight || 540;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+      const data = chartData.spendIntensity;
+
+      svg = root.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+
+      const years = data.map(d => d.year);
+      xScale = d3.scaleBand().domain(years).range([0, iW]).padding(0.35);
+      yLeft  = d3.scaleLinear().domain([0, 14]).range([iH, 0]).nice();
+      yRight = d3.scaleLinear().domain([0.15, 0.42]).range([iH, 0]);
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      // Grid
+      g.append('g').attr('class','grid')
+        .call(d3.axisLeft(yLeft).ticks(7).tickSize(-iW).tickFormat(() => ''));
+
+      // Axes
+      g.append('g').attr('class','axis').attr('transform',`translate(0,${iH})`)
+        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+      g.append('g').attr('class','axis')
+        .call(d3.axisLeft(yLeft).ticks(7).tickFormat(d => d3.format(',')(d)));
+      g.append('g').attr('class','axis axis-right').attr('transform',`translate(${iW},0)`)
+        .call(d3.axisRight(yRight).ticks(6).tickFormat(d => d3.format('.3f')(d)));
+
+      barsG  = g.append('g');
+      lineG  = g.append('g');
+      annotG = g.append('g');
+
+      penG = svg.append('g');
+      penG.append('text').attr('class','pen-icon').attr('text-anchor','middle')
+        .attr('dominant-baseline','auto').attr('opacity',0).text('\u270f\ufe0f');
+
+      // Axis titles
+      svg.append('text').attr('class','subtitle').attr('text-anchor','middle')
+        .attr('x', margin.left).attr('y', margin.top - 8)
+        .text('Spend (\u00a3bn)');
+      svg.append('text').attr('class','subtitle').attr('fill','#F4633A').attr('text-anchor','middle')
+        .attr('x', W - margin.right).attr('y', margin.top - 8)
+        .text('kgCO\u2082e/\u00a3');
+
+      // Chart titles
+      svg.append('text').attr('class','title').attr('x', margin.left).attr('y', 30)
+        .text('Supply chain spend vs carbon intensity, 2020\u20132025');
+      svg.append('text').attr('class','subtitle').attr('x', margin.left).attr('y', 50)
+        .text('Spend nearly tripled \u2014 but carbon per \u00a3 spent fell 27%.');
+
+      // Hover layer
+      svg.append('rect').attr('x', margin.left).attr('y', margin.top)
+        .attr('width', iW).attr('height', iH).attr('fill','transparent')
+        .on('mousemove', handleHover).on('mouseleave', () => tooltip.style('opacity', 0));
+    }
+
+    function render() {
+      if (!chartData || !svg) return;
+      const data = chartData.spendIntensity;
+      const iH = (root.node().clientHeight || 540) - margin.top - margin.bottom;
+      const iW = (root.node().clientWidth || 960) - margin.left - margin.right;
+
+      const progress = clamp((revealYear - 2020) / 5, 0, 1);
+
+      // All bars always visible
+      barsG.selectAll('rect.bar').data(data, d => d.year).join(
+        enter => enter.append('rect').attr('class','bar')
+          .attr('x', d => xScale(d.year)).attr('width', xScale.bandwidth())
+          .attr('y', iH).attr('height', 0)
+          .on('mousemove', (event, d) => showTip(event, d))
+          .on('mouseleave', () => tooltip.style('opacity', 0))
+          .call(s => s.transition().duration(600).ease(d3.easeBounceOut)
+            .attr('y', d => yLeft(d.spendBn)).attr('height', d => iH - yLeft(d.spendBn)))
+      );
+
+      // Bar value labels (ktCO₂e, matching report)
+      const maxRevealYear = Math.floor(revealYear);
+      barsG.selectAll('text.bar-label').data(data.filter(d => d.year <= maxRevealYear), d => d.year)
+        .join('text').attr('class','bar-label')
+        .attr('x', d => xScale(d.year) + xScale.bandwidth() / 2)
+        .attr('y', d => yLeft(d.spendBn) - 5)
+        .text(d => '\u00a3' + d.spendBn + 'bn');
+
+      // Intensity line revealed by dashoffset
+      const lineGen = d3.line()
+        .x(d => xScale(d.year) + xScale.bandwidth() / 2)
+        .y(d => yRight(d.intensity / 1000))
+        .curve(d3.curveMonotoneX);
+
+      const pathSel = lineG.selectAll('path.intensity-path').data([data]).join('path')
+        .attr('class','intensity-path').attr('d', lineGen);
+
+      const totalLen = pathSel.node().getTotalLength();
+      pathSel.attr('stroke-dasharray', totalLen)
+        .attr('stroke-dashoffset', (1 - progress) * totalLen);
+
+      // Pen icon
+      const penIcon = penG.select('text.pen-icon');
+      if (progress > 0.01 && progress < 0.99) {
+        const pt = pathSel.node().getPointAtLength(progress * totalLen);
+        penIcon.attr('x', margin.left + pt.x + 2).attr('y', margin.top + pt.y - 6).attr('opacity', 1);
+      } else {
+        penIcon.attr('opacity', 0);
+      }
+
+      // Annotation: "–27% since 2020" appears when fully drawn
+      annotG.selectAll('*').remove();
+      if (progress >= 0.99) {
+        const startY = yRight(data[0].intensity / 1000);
+        const endY   = yRight(data[data.length - 1].intensity / 1000);
+        const x0 = xScale(2020) + xScale.bandwidth() / 2;
+        const x1 = xScale(2025) + xScale.bandwidth() / 2;
+        annotG.append('line').attr('class','annotation-line')
+          .attr('x1', x0).attr('x2', x1)
+          .attr('y1', startY).attr('y2', startY);
+        annotG.append('text').attr('class','annotation-text')
+          .attr('x', x1 + 4).attr('y', startY + 4).text('2020 baseline');
+        annotG.append('text').attr('class','annotation-text').attr('font-weight','700')
+          .attr('fill','#F4633A')
+          .attr('x', xScale(2025) + xScale.bandwidth() / 2 - 4).attr('text-anchor','end')
+          .attr('y', endY - 10).text('\u221227% carbon per \u00a3 (2020\u21922025)');
+      }
+    }
+
+    function showTip(event, d) {
+      tooltip.style('opacity', 1)
+        .style('left', (event.offsetX + 14) + 'px')
+        .style('top', Math.max(8, event.offsetY - 60) + 'px')
+        .html('<strong>' + d.year + '</strong><br/>Spend: \u00a3' + d.spendBn + 'bn<br/>SC Emissions: ' +
+          d3.format(',.0f')(d.scEmissions) + ' ktCO\u2082e<br/>Intensity: ' +
+          d3.format('.3f')(d.intensity / 1000) + ' kgCO\u2082e/\u00a3');
+    }
+
+    function handleHover(event) {
+      if (!chartData) return;
+      const [mx] = d3.pointer(event, svg.node());
+      const relX = mx - margin.left;
+      const data = chartData.spendIntensity;
+      let best = null, bestDist = Infinity;
+      for (const d of data) {
+        const cx = xScale(d.year) + xScale.bandwidth() / 2;
+        const dx = Math.abs(cx - relX);
+        if (dx < bestDist) { bestDist = dx; best = d; }
+      }
+      if (best) showTip(event, best);
+    }
+
+    function applyState(state, timeMs) {
+      if (!chartData) return;
+      if (typeof timeMs === 'number' && isFinite(timeMs)) currentTimelineTimeMs = timeMs;
+      if (state.streamTime) {
+        const segStart = Number(state.segmentStartTimeMs);
+        const segEnd   = Number(state.segmentEndTimeMs);
+        if (segEnd > segStart) {
+          const p = clamp((currentTimelineTimeMs - segStart) / (segEnd - segStart), 0, 1);
+          revealYear = 2020 + 5 * p;
+        }
+      } else {
+        revealYear = clamp(Number(state.revealYear != null ? state.revealYear : 2020), 2020, 2025);
+      }
+      render();
+    }
+
+    function initialize(data) {
+      if (!data || !data.spendIntensity) return;
+      chartData = data;
+      setupChart();
+      render();
+    }
+
+    window.addEventListener('resize', () => { if (!chartData) return; setupChart(); render(); });
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = (typeof p.time === 'number' && isFinite(p.time)) ? p.time : currentTimelineTimeMs;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+    window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

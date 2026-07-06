@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Source Blocks</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --bg-1: #070e0b;
+      --bg-2: #0c2218;
+      --ink: #f0fff8;
+      --muted: #b8dece;
+      --panel: rgba(6, 16, 12, 0.72);
+      --highlight: #fff56e;
+    }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      font-family: "DM Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 82% 18%, rgba(52, 211, 153, 0.18), transparent 32%),
+        radial-gradient(circle at 10% 70%, rgba(78, 154, 241, 0.14), transparent 28%),
+        linear-gradient(150deg, var(--bg-1), var(--bg-2));
+      color: var(--ink);
+    }
+
+    #chart { width: 100%; height: 100%; position: relative; }
+
+    .title { position: absolute; top: 12px; left: 12px; right: 12px; pointer-events: none; z-index: 3; }
+    .title h1 { margin: 0; font-size: 21px; letter-spacing: 0.01em; font-weight: 700; }
+    .title p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+
+    .back-btn {
+      position: absolute; left: 14px; top: 64px; z-index: 4;
+      background: var(--panel); border: 1px solid rgba(180, 240, 210, 0.3);
+      color: var(--ink); border-radius: 999px; padding: 6px 12px;
+      font-size: 12px; cursor: pointer; opacity: 0; pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+    .back-btn.visible { opacity: 1; pointer-events: auto; }
+
+    .node-rect {
+      stroke: rgba(255, 255, 255, 0.22); stroke-width: 1;
+      cursor: pointer; transition: stroke 180ms ease, stroke-width 180ms ease, filter 180ms ease;
+    }
+    .node-rect.highlight { stroke: var(--highlight); stroke-width: 3; filter: drop-shadow(0 0 8px rgba(255,245,110,0.5)); }
+
+    .label {
+      fill: rgba(245,255,250,0.95); pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 12px; font-weight: 600;
+    }
+    .sub-label {
+      fill: rgba(245,255,250,0.80); pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 11px;
+    }
+
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(5, 14, 10, 0.92); border: 1px solid rgba(180,245,215,0.35);
+      border-radius: 9px; color: var(--ink); font-size: 12px;
+      padding: 8px 10px; line-height: 1.35; opacity: 0;
+      transition: opacity 120ms ease; white-space: nowrap; z-index: 8;
+    }
+
+    .source-legend {
+      position: absolute; bottom: 12px; right: 12px; z-index: 4;
+      background: var(--panel); border: 1px solid rgba(180,240,210,0.25);
+      border-radius: 10px; padding: 8px 10px;
+      font-size: 11px; line-height: 1.6;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .src-row { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+    .src-swatch { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 10px; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div class="title">
+    <h1>Source Blocks: Where Emissions Come From</h1>
+    <p>Treemap of Welsh public sector 2025 emissions by sector and source. Click a sector to zoom in.</p>
+  </div>
+  <button id="back" class="back-btn">← Back to All Sectors</button>
+  <div id="tooltip" class="tooltip"></div>
+  <div class="source-legend">
+    <div class="src-row"><span class="src-swatch" style="background:#c0392b"></span>Supply Chain</div>
+    <div class="src-row"><span class="src-swatch" style="background:#2980b9"></span>Buildings</div>
+    <div class="src-row"><span class="src-swatch" style="background:#d4860a"></span>Transport</div>
+    <div class="src-row"><span class="src-swatch" style="background:#7e57c2"></span>Medical Gases</div>
+    <div class="src-row"><span class="src-swatch" style="background:#2e7d5e"></span>Waste</div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const backButton = d3.select('#back');
+
+    let dataModel = null;
+    let sectorById = new Map();
+    let svg, sceneLayer;
+    let currentDepth = 0;
+    let currentSectorId = null;
+    let currentView = 'world';
+    let playbackIsPlaying = false;
+    let lastNarrativeState = null;
+    let userDismissedDimming = false;
+    let fallbackBootstrapStarted = false;
+
+    const CHART_TOP_OFFSET = 92;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    let latestState = { view: 'world', highlightSector: null, dimSector: null, fadeOut: false };
+
+    function sourceColor(id) {
+      if (!id) return '#4f8a73';
+      if (id.endsWith('_sc'))    return '#c0392b';
+      if (id.endsWith('_build')) return '#2980b9';
+      if (id.endsWith('_trans')) return '#d4860a';
+      if (id.endsWith('_med'))   return '#7e57c2';
+      if (id.endsWith('_waste')) return '#2e7d5e';
+      return '#4f8a73';
+    }
+
+    function sectorColor(id) {
+      return sectorById.get(id)?.color || '#4f8a73';
+    }
+
+    function darkenColor(hex, fraction) {
+      const color = d3.color(hex);
+      if (!color) return hex;
+      const hsl = d3.hsl(color);
+      const safe = Math.max(0, Math.min(1, Number(fraction) || 0));
+      hsl.l = Math.max(0, Math.min(1, hsl.l * (1 - safe)));
+      return hsl.toString();
+    }
+
+    function formatEmissions(value) {
+      if (value >= 1000) return d3.format('.1f')(value / 1000) + ' MtCO₂e';
+      return d3.format(',.0f')(value) + ' ktCO₂e';
+    }
+
+    function standaloneDataUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const value = params.get('data') || params.get('dataUrl');
+      return value ? new URL(value, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    function showLoadError(message) {
+      root.selectAll('*').remove();
+      root.append('div')
+        .style('position', 'absolute').style('inset', '0')
+        .style('display', 'grid').style('place-items', 'center')
+        .style('padding', '24px').style('text-align', 'center')
+        .style('font-size', '14px').style('color', 'var(--ink)').text(message);
+    }
+
+    async function bootstrapStandalone() {
+      if (dataModel || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const pendingNarrativeState = lastNarrativeState;
+        const pendingPlaybackIsPlaying = playbackIsPlaying;
+        const response = await fetch(standaloneDataUrl());
+        if (!response.ok) throw new Error(`Data request failed: ${response.status}`);
+        const data = await response.json();
+        if (dataModel) return;
+        initialize(data);
+        playbackIsPlaying = pendingPlaybackIsPlaying;
+        if (pendingNarrativeState) { lastNarrativeState = pendingNarrativeState; applyState(pendingNarrativeState, { duration: 0 }); }
+      } catch (error) {
+        console.error('Source Blocks standalone bootstrap failed.', error);
+        showLoadError('Unable to load data. Pass ?data=... to override the default JSON path.');
+      }
+    }
+
+    function setBackButton() { backButton.classed('visible', currentDepth > 0); }
+
+    function buildHierarchyForWorld(width, height) {
+      const hierarchy = d3.hierarchy(dataModel.treemap2025)
+        .sum(d => d.value || 0).sort((a, b) => b.value - a.value);
+      d3.treemap().size([width, height]).paddingOuter(3).paddingTop(20).paddingInner(2).round(true)(hierarchy);
+      return hierarchy;
+    }
+
+    function buildHierarchyForSector(sectorNode, width, height) {
+      const sectorData = { name: sectorNode.data.name, id: sectorNode.data.id, children: sectorNode.data.children };
+      const hierarchy = d3.hierarchy(sectorData)
+        .sum(d => d.value || 0).sort((a, b) => b.value - a.value);
+      d3.treemap().size([width, height]).paddingOuter(3).paddingTop(24).paddingInner(2).round(true)(hierarchy);
+      return hierarchy;
+    }
+
+    function nodeFill(node) {
+      if (node.depth === 1) return darkenColor(sectorColor(node.data.id), 0.15);
+      if (node.depth >= 2) return sourceColor(node.data.id);
+      return darkenColor('#2f6c57', 0.2);
+    }
+
+    function showTooltip(event, node) {
+      tooltip.style('opacity', 1)
+        .style('left', `${Math.min(event.offsetX + 14, root.node().clientWidth - 240)}px`)
+        .style('top', `${Math.max(8, event.offsetY - 32)}px`)
+        .html(`<strong>${node.data.name}</strong><br/>${formatEmissions(node.value || 0)}`);
+    }
+
+    function hideTooltip() { tooltip.style('opacity', 0); }
+
+    function notifyInteract() {
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'source-blocks' }, '*');
+    }
+
+    function ensureSvg(width, height) {
+      if (!svg) {
+        svg = root.append('svg').attr('preserveAspectRatio', 'xMidYMid meet');
+        sceneLayer = svg.append('g').attr('class', 'scene-layer');
+      }
+      svg.attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
+      sceneLayer.attr('transform', `translate(0,${CHART_TOP_OFFSET})`);
+    }
+
+    function nodeKey(node) { return String(node.data.id || node.data.name); }
+
+    function topSectorId(node) {
+      if (!node) return '';
+      if (node.depth === 1) return String(node.data.id || '').toLowerCase();
+      let current = node;
+      while (current && current.parent) {
+        if (current.parent.depth === 1) return String(current.parent.data.id || '').toLowerCase();
+        current = current.parent;
+      }
+      return '';
+    }
+
+    function activeDimSector() {
+      if (userDismissedDimming) return '';
+      return String(latestState.dimSector || '').toLowerCase();
+    }
+
+    function nodeOpacity(node) {
+      const dimSector = activeDimSector();
+      if (!dimSector || currentDepth !== 0) return 1;
+      const sId = topSectorId(node);
+      if (!sId) return 1;
+      return sId === dimSector ? 1 : 0.24;
+    }
+
+    function applyFocusDimming() {
+      if (!sceneLayer) return;
+      sceneLayer.selectAll('g.node').style('opacity', node => nodeOpacity(node));
+    }
+
+    function clearDimmingFromInteraction() {
+      if (userDismissedDimming) return;
+      userDismissedDimming = true;
+      applyFocusDimming();
+    }
+
+    function render(view = 'world', duration = 500) {
+      if (!dataModel) return;
+      const width = root.node().clientWidth || 960;
+      const height = root.node().clientHeight || 560;
+      const innerHeight = Math.max(160, height - CHART_TOP_OFFSET - 6);
+      ensureSvg(width, height);
+
+      const previousPositions = new Map();
+      sceneLayer.selectAll('g.node').each(function(node) {
+        previousPositions.set(nodeKey(node), { x0: node.x0, y0: node.y0, x1: node.x1, y1: node.y1 });
+      });
+
+      const worldHierarchy = buildHierarchyForWorld(width, innerHeight);
+      let visibleHierarchy = worldHierarchy;
+      const previousView = currentView;
+      const previousSectorId = currentSectorId;
+      currentDepth = 0; currentSectorId = null;
+
+      if (view !== 'world') {
+        const sectorNode = worldHierarchy.children?.find(c => c.data.id === view);
+        if (sectorNode) {
+          visibleHierarchy = buildHierarchyForSector(sectorNode, width, innerHeight);
+          currentDepth = 1; currentSectorId = view;
+        }
+      }
+      currentView = view;
+      setBackButton();
+
+      const nodes = visibleHierarchy.descendants().filter(n => n.depth > 0);
+      const transition = d3.transition().duration(duration).ease(d3.easeCubicOut);
+
+      const groups = sceneLayer.selectAll('g.node').data(nodes, node => nodeKey(node));
+
+      const groupsEnter = groups.enter().append('g').attr('class', 'node')
+        .attr('transform', node => {
+          const key = nodeKey(node);
+          const prev = previousPositions.get(key);
+          if (prev) return `translate(${prev.x0},${prev.y0})`;
+          if (previousView === 'world' && view !== 'world') {
+            const anchor = previousPositions.get(view);
+            if (anchor) return `translate(${anchor.x0},${anchor.y0})`;
+          }
+          if (previousView !== 'world' && view === 'world' && previousSectorId) {
+            const anchor = previousPositions.get(previousSectorId);
+            if (anchor) return `translate(${anchor.x0},${anchor.y0})`;
+          }
+          return `translate(${node.x0},${node.y0})`;
+        })
+        .style('opacity', 0);
+
+      groupsEnter.append('rect').attr('class', 'node-rect')
+        .attr('width', node => { const prev = previousPositions.get(nodeKey(node)); return Math.max(0, prev ? prev.x1 - prev.x0 : node.x1 - node.x0); })
+        .attr('height', node => { const prev = previousPositions.get(nodeKey(node)); return Math.max(0, prev ? prev.y1 - prev.y0 : node.y1 - node.y0); })
+        .attr('fill', node => nodeFill(node));
+
+      groupsEnter.append('text').attr('class', 'label').attr('x', 7).attr('y', 16);
+      groupsEnter.append('text').attr('class', 'sub-label').attr('x', 7).attr('y', 30);
+
+      const groupsMerged = groupsEnter.merge(groups);
+
+      groupsMerged
+        .on('mousemove', (event, node) => showTooltip(event, node))
+        .on('mouseleave', hideTooltip)
+        .on('click', (_, node) => {
+          clearDimmingFromInteraction();
+          notifyInteract();
+          if (currentDepth === 0 && node.depth === 1) {
+            latestState.view = node.data.id;
+            render(latestState.view, 620);
+            applyHighlight();
+          }
+        });
+
+      groupsMerged.transition(transition)
+        .style('opacity', node => nodeOpacity(node))
+        .attr('transform', node => `translate(${node.x0},${node.y0})`);
+
+      groupsMerged.select('rect.node-rect').transition(transition)
+        .attr('width', node => Math.max(0, node.x1 - node.x0))
+        .attr('height', node => Math.max(0, node.y1 - node.y0))
+        .attr('fill', node => nodeFill(node));
+
+      groupsMerged.select('text.label').text(node => {
+        const nw = node.x1 - node.x0, nh = node.y1 - node.y0;
+        const minW = currentDepth === 0 ? 90 : 65, minH = currentDepth === 0 ? 34 : 28;
+        if (nw < minW || nh < minH) return '';
+        return node.data.name;
+      });
+
+      groupsMerged.select('text.sub-label').text(node => {
+        const nw = node.x1 - node.x0, nh = node.y1 - node.y0;
+        if (nw < 85 || nh < 44) return '';
+        if (!node.value) return '';
+        return formatEmissions(node.value);
+      });
+
+      groups.exit().transition(transition).style('opacity', 0).remove();
+      svg.transition(transition).style('opacity', latestState.fadeOut ? 0.2 : 1);
+      applyHighlight();
+      applyFocusDimming();
+    }
+
+    function applyHighlight() {
+      if (!sceneLayer) return;
+      const hlId = (latestState.highlightSector || '').toLowerCase();
+      sceneLayer.selectAll('rect.node-rect').classed('highlight', function(node) {
+        if (!hlId) return false;
+        if (currentDepth === 0) return String(node.data.id || '').toLowerCase() === hlId;
+        if (currentDepth === 1) return String(currentSectorId || '').toLowerCase() === hlId;
+        return false;
+      });
+    }
+
+    function applyState(state, options = {}) {
+      if (!dataModel) return;
+      const duration = Number(options.duration ?? state.duration ?? 480);
+      latestState = { ...latestState, ...state };
+      if (state.dimSector === null) latestState.dimSector = null;
+      if (options.resetUnspecified) { userDismissedDimming = false; latestState.dimSector = null; }
+      render(latestState.view || 'world', duration);
+      applyHighlight();
+      applyFocusDimming();
+      if (typeof latestState.fadeOut === 'boolean') {
+        svg?.transition().duration(duration).style('opacity', latestState.fadeOut ? 0.2 : 1);
+      }
+    }
+
+    function initialize(data) {
+      if (!data || !data.treemap2025) return;
+      dataModel = data;
+      sectorById = new Map((data.sectors || []).map(s => [s.id, s]));
+      latestState = { view: 'world', highlightSector: null, dimSector: null, fadeOut: false };
+      playbackIsPlaying = false;
+      lastNarrativeState = null;
+      userDismissedDimming = false;
+      render('world', 0);
+    }
+
+    backButton.on('click', () => {
+      clearDimmingFromInteraction();
+      notifyInteract();
+      latestState.view = 'world';
+      render('world', 620);
+      applyHighlight();
+      applyFocusDimming();
+    });
+
+    window.addEventListener('resize', () => { if (!dataModel) return; render(latestState.view || 'world', 0); applyHighlight(); });
+
+    window.addEventListener('message', event => {
+      const payload = event.data;
+      if (!payload || !payload.type) return;
+      if (payload.type === 'DIVE_INIT') {
+        initialize(payload.data);
+      } else if (payload.type === 'DIVE_STATE') {
+        lastNarrativeState = payload.state || {};
+        if (!dataModel) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState);
+      } else if (payload.type === 'DIVE_PLAYBACK') {
+        const next = Boolean(payload.isPlaying);
+        const didResume = !playbackIsPlaying && next;
+        playbackIsPlaying = next;
+        if (!dataModel) { bootstrapStandalone(); return; }
+        if (didResume && lastNarrativeState) applyState(lastNarrativeState, { resetUnspecified: true, duration: 420 });
+      }
+    });
+
+    window.setTimeout(() => { if (!dataModel) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

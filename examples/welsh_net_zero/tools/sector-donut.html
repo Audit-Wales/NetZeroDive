@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sector Donut</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #ffffff;
+      font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+      color: #1f2937;
+      display: flex; align-items: stretch;
+    }
+
+    #donut-panel {
+      flex: 0 0 50%; display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+
+    #text-panel {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      padding: 32px 40px 32px 20px;
+    }
+
+    .headline {
+      font-size: clamp(1.3rem, 2.6vw, 2rem); font-weight: 700; line-height: 1.25;
+      color: #111827; margin: 0 0 18px 0;
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .headline.visible { opacity: 1; transform: translateY(0); }
+    .headline .highlight { color: #F4633A; }
+
+    .body-text {
+      font-size: clamp(0.95rem, 1.8vw, 1.35rem); color: #4b5563; line-height: 1.5;
+      margin: 0;
+      opacity: 0; transform: translateY(16px);
+      transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
+    }
+    .body-text.visible { opacity: 1; transform: translateY(0); }
+
+    .sector-legend {
+      margin-top: 20px;
+      opacity: 0; transition: opacity 0.5s ease;
+    }
+    .sector-legend.visible { opacity: 1; }
+    .sector-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 12px; color: #374151;
+    }
+    .sector-table th {
+      text-align: left; font-weight: 600; color: #6b7280;
+      padding: 3px 8px 4px 0; border-bottom: 1px solid #e5e7eb;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .sector-table th:nth-child(2), .sector-table th:nth-child(3) { text-align: right; }
+    .sector-table td {
+      padding: 5px 8px 5px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .sector-table td:nth-child(2) { text-align: right; font-weight: 700; color: #111827; }
+    .sector-table td:nth-child(3) { text-align: right; color: #6b7280; }
+
+    .center-label {
+      text-anchor: middle; dominant-baseline: middle;
+      transition: opacity 0.4s ease;
+    }
+
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(17,24,39,0.9); color: #f9fafb;
+      border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 1.4;
+      opacity: 0; transition: opacity 100ms ease;
+      white-space: nowrap; z-index: 8;
+    }
+  </style>
+</head>
+<body>
+  <div id="donut-panel">
+    <svg id="donut-svg"></svg>
+    <div id="tooltip" class="tooltip" style="position:fixed"></div>
+  </div>
+
+  <div id="text-panel">
+    <p class="headline" id="headline-1">Five sectors report emissions across Welsh public bodies.</p>
+    <p class="headline" id="headline-2" style="display:none">
+      <span class="highlight">Local Authorities (45%) and NHS Wales (35%)</span> together account for
+      <span class="highlight">80%</span> of total emissions.
+    </p>
+    <p class="body-text" id="body-text" style="display:none">
+      These sectors emit the most because they deliver the most services,
+      manage the largest estates and procure the most goods and services.
+    </p>
+    <div class="sector-legend" id="sector-legend"></div>
+  </div>
+
+  <script>
+    const tooltip = d3.select('#tooltip');
+    const donutSvg = d3.select('#donut-svg');
+
+    let chartData = null;
+    let currentPhase = 1;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+    const ORANGE = '#F4633A';
+
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        const pending = lastNarrativeState;
+        initialize(data);
+        if (pending) applyState(pending);
+        else {
+          // Skip individual arcs — go straight to orange fill from top
+          setTimeout(() => { currentPhase = 2; drawPhase2(true); }, 300);
+          setTimeout(() => { currentPhase = 3; drawPhase3(true); }, 3300);
+          return;
+        }
+      } catch(e) {
+        console.error('Sector Donut bootstrap failed', e);
+        document.getElementById('donut-panel').textContent = 'Unable to load data.';
+      }
+    }
+
+    let outerR, innerR, arcGen, combArcGen;
+    let individualGroup, combinedGroup, centerGroup;
+
+    function setupDonut() {
+      const panel = document.getElementById('donut-panel');
+      const size = Math.min(panel.clientWidth, panel.clientHeight) * 0.88;
+      outerR = size / 2;
+      innerR = outerR * 0.58;
+
+      donutSvg
+        .attr('width', size).attr('height', size)
+        .attr('viewBox', `0 0 ${size} ${size}`)
+        .attr('style', 'display:block');
+
+      const g = donutSvg.selectAll('g.main').data([0]).join('g')
+        .attr('class', 'main').attr('transform', `translate(${size/2},${size/2})`);
+
+      arcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(4).padAngle(0.018);
+      combArcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(6);
+
+      individualGroup = g.selectAll('g.individual').data([0]).join('g').attr('class', 'individual');
+      combinedGroup   = g.selectAll('g.combined').data([0]).join('g').attr('class', 'combined');
+      centerGroup     = g.selectAll('g.center').data([0]).join('g').attr('class', 'center');
+
+      centerGroup.selectAll('text.center-value').data([0]).join('text')
+        .attr('class', 'center-label center-value')
+        .attr('font-size', outerR * 0.28).attr('font-weight', 700).attr('fill', '#111827').attr('dy', '-0.2em');
+      centerGroup.selectAll('text.center-sub').data([0]).join('text')
+        .attr('class', 'center-label center-sub')
+        .attr('font-size', outerR * 0.1).attr('fill', '#6b7280').attr('dy', '1.1em');
+    }
+
+    function buildLegend() {
+      const legend = document.getElementById('sector-legend');
+      legend.innerHTML = '';
+      const table = document.createElement('table');
+      table.className = 'sector-table';
+      const thead = table.createTHead();
+      const hr = thead.insertRow();
+      ['Sector', 'Share'].forEach(h => {
+        const th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
+      });
+      const tbody = table.createTBody();
+      for (const s of chartData.sectorShares2025) {
+        const tr = tbody.insertRow();
+        const isOrange = s.id === 'local_auth' || s.id === 'nhs_wales';
+        const style = isOrange ? ` style="color:${ORANGE};font-weight:700"` : '';
+        tr.innerHTML = `<td${style}>${s.name}</td><td${style}>${s.share}%</td>`;
+      }
+      legend.appendChild(table);
+    }
+
+    function animateCounter(textEl, from, to, duration, suffix = '') {
+      const start = performance.now();
+      function frame(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const val = Math.round(from + (to - from) * progress);
+        textEl.text(`${val}${suffix}`);
+        if (progress < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function drawPhase1(animate = true) {
+      if (!chartData || !individualGroup) return;
+
+      // No individual coloured arcs — grey background ring only
+      individualGroup.selectAll('path.sector-arc').remove();
+
+      combinedGroup.selectAll('path.combined-arc, path.combined-other').remove();
+      combinedGroup.selectAll('path.bg-ring').data([1]).join('path')
+        .attr('class', 'bg-ring').attr('fill', '#f3f4f6')
+        .attr('d', combArcGen({startAngle: -Math.PI / 2, endAngle: 3 * Math.PI / 2}));
+
+      centerGroup.select('.center-value').text('82').attr('fill', '#111827');
+      centerGroup.select('.center-sub').text('reporting bodies');
+      document.getElementById('sector-legend').classList.add('visible');
+    }
+
+    function drawPhase2(animate = true) {
+      if (!combinedGroup) return;
+
+      const dur = animate ? 2000 : 0;
+      const endAngle = 0.8 * 2 * Math.PI;
+
+      // Remove grey remaining-arc, keep bg-ring
+      combinedGroup.selectAll('path.combined-other').remove();
+
+      combinedGroup.selectAll('path.combined-arc').data([{startAngle: -Math.PI/2, endAngle: -Math.PI/2}])
+        .join('path').attr('class', 'combined-arc').attr('fill', ORANGE)
+        .call(sel => sel.transition().duration(dur).ease(d3.easeCubicInOut)
+          .attrTween('d', function() {
+            const i = d3.interpolate(this.__angle__ || -Math.PI/2, -Math.PI/2 + endAngle);
+            return t => { this.__angle__ = i(t); return combArcGen({startAngle: -Math.PI/2, endAngle: i(t)}); };
+          }));
+
+      centerGroup.select('.center-sub').text('LA + NHS');
+      if (animate) animateCounter(centerGroup.select('.center-value'), 0, 80, dur * 0.9, '%');
+      else centerGroup.select('.center-value').text('80%');
+      centerGroup.select('.center-value').attr('fill', ORANGE);
+
+      // Show headline 2
+      const h1 = document.getElementById('headline-1');
+      const h2 = document.getElementById('headline-2');
+      h1.classList.remove('visible'); h1.style.display = 'none';
+      h2.style.display = ''; requestAnimationFrame(() => h2.classList.add('visible'));
+    }
+
+    function drawPhase3(animate = true) {
+      const bodyText = document.getElementById('body-text');
+      bodyText.style.display = '';
+      requestAnimationFrame(() => bodyText.classList.add('visible'));
+      document.getElementById('sector-legend').classList.add('visible');
+    }
+
+    function transitionToPhase(phase, animate = true) {
+      currentPhase = phase;
+      if (phase >= 1) drawPhase1(animate && phase === 1);
+      if (phase >= 2) drawPhase2(animate && phase === 2);
+      if (phase >= 3) drawPhase3(animate && phase === 3);
+    }
+
+    function applyState(state) {
+      if (!chartData) return;
+      const phase = Number(state.phase || 1);
+      if (phase !== currentPhase) transitionToPhase(phase, true);
+    }
+
+    function initialize(data) {
+      if (!data?.sectorShares2025) return;
+      chartData = data;
+      setupDonut();
+      buildLegend();
+      // Show headline-1 (will switch to headline-2 when phase 2 starts)
+      const h1 = document.getElementById('headline-1');
+      h1.style.display = '';
+      requestAnimationFrame(() => h1.classList.add('visible'));
+      // Don't draw individual arcs on init — phase 2 will draw what's needed
+    }
+
+    window.addEventListener('resize', () => { if (!chartData) return; setupDonut(); transitionToPhase(currentPhase, false); });
+
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p?.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = p.time;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState);
+      }
+    });
+
+    window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

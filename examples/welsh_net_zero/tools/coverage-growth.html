@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coverage Growth</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+      color: #1f2937;
+    }
+    #chart { width: 100%; height: 100%; position: relative; }
+    .title   { font-size: 17px; font-weight: 600; fill: #111827; }
+    .subtitle{ font-size: 13px; fill: #6b7280; font-family: Arial, sans-serif; }
+    .axis text { fill: #6b7280; font-size: 11px; }
+    .axis path, .axis line { stroke: #d1d5db; }
+    .axis-right text { fill: #ea580c; font-weight: 600; }
+    .axis-right path, .axis-right line { stroke: #fed7aa; }
+    .grid line { stroke: #e5e7eb; stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+    .bar       { fill: #c4cdd6; }
+    .bar:hover { fill: #9ca3af; cursor: pointer; }
+    .body-segment { fill: none; stroke: #ea580c; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(234,88,12,0.45)); }
+    .body-dot     { fill: #ea580c; stroke: #fff; stroke-width: 2; }
+    .bodies-label { font-size: 11px; fill: #ea580c; text-anchor: middle; font-weight: 700; }
+    .legend {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 22px;
+    }
+    .legend-row   { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6b7280; }
+    .legend-swatch-bar  { width: 14px; height: 10px; background: #c4cdd6; border-radius: 2px; }
+    .legend-swatch-line { width: 20px; height: 3px; background: #ea580c; border-radius: 2px; }
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(17,24,39,0.88); color: #f9fafb;
+      border-radius: 6px; padding: 5px 9px; font-size: 11px; line-height: 1.45;
+      opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22); z-index: 8;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div class="legend">
+    <div class="legend-row"><span class="legend-swatch-bar"></span>Total emissions (ktCO<sub>2</sub>e)</div>
+    <div class="legend-row"><span class="legend-swatch-line"></span>Reporting bodies</div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const margin = { top: 88, right: 80, bottom: 52, left: 72 };
+    let svg, xScale, yLeft, yRight, barsG, segmentsG, dotsG, labelsG, penG;
+    let chartData = null;
+    let revealBodyYear = 2020;
+    let currentTimelineTimeMs = 0;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        const pending = lastNarrativeState;
+        const pendingMs = lastNarrativeTimeMs;
+        initialize(data);
+        if (pending) applyState(pending, pendingMs);
+        else { revealBodyYear = 2025; render(true); }
+      } catch(e) {
+        console.error('Coverage Growth bootstrap failed', e);
+        root.append('div').style('position','absolute').style('inset','0').style('display','grid')
+          .style('place-items','center').style('font-size','14px').style('color','#374151')
+          .text('Unable to load data.');
+      }
+    }
+    function setupChart() {
+      root.selectAll('svg').remove();
+      const W = root.node().clientWidth || 960;
+      const H = root.node().clientHeight || 540;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+      svg = root.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+      const years = chartData.emissionsPerBody.map(d => d.year);
+      xScale = d3.scaleBand().domain(years).range([0, iW]).padding(0.35);
+      yLeft  = d3.scaleLinear().domain([0, 4500]).range([iH, 0]).nice();
+      yRight = d3.scaleLinear().domain([40, 90]).range([iH, 0]);
+      g.append('g').attr('class', 'grid')
+        .call(d3.axisLeft(yLeft).ticks(7).tickSize(-iW).tickFormat(() => ''));
+      g.append('g').attr('class', 'axis').attr('transform', `translate(0,${iH})`)
+        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+      g.append('g').attr('class', 'axis')
+        .call(d3.axisLeft(yLeft).ticks(7).tickFormat(d => d3.format(',.0f')(d)));
+      g.append('g').attr('class', 'axis axis-right').attr('transform', `translate(${iW},0)`)
+        .call(d3.axisRight(yRight).ticks(5));
+      barsG     = g.append('g');
+      segmentsG = g.append('g');
+      dotsG     = g.append('g');
+      labelsG   = g.append('g');
+      penG      = svg.append('g');
+      penG.append('text').attr('class', 'pen-icon')
+        .attr('font-size', '22px').attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'auto').attr('opacity', 0).text('\u270f\ufe0f');
+      svg.append('text').attr('class', 'subtitle').attr('text-anchor', 'middle')
+        .attr('x', margin.left).attr('y', margin.top - 8)
+        .text('Emissions (ktCO\u2082e)');
+      svg.append('text').attr('class', 'subtitle').attr('fill', '#ea580c').attr('text-anchor', 'middle')
+        .attr('x', W - margin.right).attr('y', margin.top - 8)
+        .text('Reporting bodies');
+      svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', 30)
+        .text('Welsh public sector total emissions, 2020\u20132025');
+      svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', 48)
+        .text('Bars show total emissions across all sources. The orange line tracks the number of reporting bodies.');
+    }
+    function render(animate) {
+      if (!chartData || !svg) return;
+      if (animate === undefined) animate = true;
+      const data = chartData.emissionsPerBody;
+      const iH = (root.node().clientHeight || 540) - margin.top - margin.bottom;
+      // All bars always visible
+      barsG.selectAll('rect.bar')
+        .data(data, d => d.year)
+        .join(
+          enter => enter.append('rect').attr('class', 'bar')
+            .attr('x', d => xScale(d.year)).attr('width', xScale.bandwidth())
+            .attr('y', iH).attr('height', 0)
+            .on('mousemove', (event, d) => {
+              const chartW = root.node().clientWidth || 960;
+              const x = event.offsetX;
+              const flipLeft = x > chartW * 0.55;
+              tooltip.style('opacity', 1)
+                .style('left', flipLeft ? 'auto' : (x + 12) + 'px')
+                .style('right', flipLeft ? (chartW - x + 10) + 'px' : 'auto')
+                .style('top', Math.max(8, event.offsetY - 40) + 'px')
+                .html('<strong>' + d.year + '</strong><br/>Total emissions: ' + d3.format(',.0f')(d.totalEmissions) + ' ktCO\u2082e<br/>Bodies: ' + d.bodies);
+            })
+            .on('mouseleave', () => tooltip.style('opacity', 0))
+            .call(sel => sel.transition().duration(animate ? 700 : 0).ease(d3.easeBounceOut)
+              .attr('y', d => yLeft(d.totalEmissions)).attr('height', d => iH - yLeft(d.totalEmissions)))
+        );
+      // ── Bodies line: single smooth path revealed via stroke-dashoffset ──
+      const lineGen = d3.line()
+        .x(d => xScale(d.year) + xScale.bandwidth() / 2)
+        .y(d => yRight(d.bodies))
+        .curve(d3.curveMonotoneX);
+
+      // Keep a single path element; rebuild if scale changes (resize)
+      const pathSel = segmentsG.selectAll('path.body-line')
+        .data([data])
+        .join('path').attr('class', 'body-line body-segment')
+        .attr('d', lineGen);
+
+      const totalLen = pathSel.node().getTotalLength();
+      const progress = Math.max(0, Math.min(1, (revealBodyYear - 2020) / 5));
+      // Direct assignment — DIVE calls render() at ~60 fps when streaming,
+      // so no D3 transition needed; the rapid calls produce the smooth animation.
+      pathSel
+        .attr('stroke-dasharray', totalLen)
+        .attr('stroke-dashoffset', (1 - progress) * totalLen);
+
+      // Pen icon travels along the line tip while drawing
+      const penIcon = penG.select('text.pen-icon');
+      if (progress > 0.01 && progress < 0.99) {
+        const pt = pathSel.node().getPointAtLength(progress * totalLen);
+        penIcon.attr('x', margin.left + pt.x + 2).attr('y', margin.top + pt.y - 6).attr('opacity', 1);
+      } else {
+        penIcon.attr('opacity', 0);
+      }
+      dotsG.selectAll('circle.body-dot').data([]).join('circle');
+      labelsG.selectAll('text.bodies-label').data([]).join('text');
+    }
+    function applyState(state, timeMs) {
+      if (!chartData) return;
+      if (typeof timeMs === 'number' && isFinite(timeMs)) currentTimelineTimeMs = timeMs;
+      if (state.streamTime) {
+        const segStart = Number(state.segmentStartTimeMs);
+        const segEnd   = Number(state.segmentEndTimeMs);
+        if (segEnd > segStart) {
+          const progress = clamp((currentTimelineTimeMs - segStart) / (segEnd - segStart), 0, 1);
+          revealBodyYear = 2020 + 5 * progress;
+        }
+      } else {
+        revealBodyYear = clamp(Number(state.revealBodyYear != null ? state.revealBodyYear : 2020), 2020, 2025);
+      }
+      render(true);
+    }
+    function initialize(data) {
+      if (!data || !data.emissionsPerBody) return;
+      chartData = data;
+      setupChart();
+      render(false);
+    }
+    window.addEventListener('resize', function() { if (!chartData) return; setupChart(); render(false); });
+    window.addEventListener('message', function(event) {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = (typeof p.time === 'number' && isFinite(p.time)) ? p.time : currentTimelineTimeMs;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+    window.setTimeout(function() { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

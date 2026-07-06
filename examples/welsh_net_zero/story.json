@@ -1,0 +1,468 @@
+{
+  "title": "Welsh Public Sector Net Zero 2025",
+  "duration": 120000,
+  "timelineSections": [
+    {
+      "id": "headline-intro",
+      "startTime": 0,
+      "endTime": 3000,
+      "label": "The Story",
+      "color": "rgba(234, 88, 12, 0.22)"
+    },
+    {
+      "id": "headline-facts",
+      "startTime": 3000,
+      "endTime": 20000,
+      "label": "Key Facts",
+      "color": "rgba(234, 88, 12, 0.38)"
+    },
+    {
+      "id": "headline-explore",
+      "startTime": 20000,
+      "endTime": 25000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "epb-intro",
+      "startTime": 25000,
+      "endTime": 27000,
+      "label": "Per Body",
+      "color": "rgba(234, 88, 12, 0.22)"
+    },
+    {
+      "id": "epb-draw",
+      "startTime": 27000,
+      "endTime": 35000,
+      "label": "Pen Draws",
+      "color": "rgba(234, 88, 12, 0.38)"
+    },
+    {
+      "id": "epb-explore",
+      "startTime": 35000,
+      "endTime": 42000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "donut-sectors",
+      "startTime": 42000,
+      "endTime": 45000,
+      "label": "Sectors",
+      "color": "rgba(244, 99, 58, 0.22)"
+    },
+    {
+      "id": "donut-highlight",
+      "startTime": 45000,
+      "endTime": 48000,
+      "label": "LA + NHS",
+      "color": "rgba(244, 99, 58, 0.38)"
+    },
+    {
+      "id": "donut-explore",
+      "startTime": 48000,
+      "endTime": 54000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "sectors-2020",
+      "startTime": 54000,
+      "endTime": 60000,
+      "label": "Sectors 2020",
+      "color": "rgba(78, 154, 241, 0.35)"
+    },
+    {
+      "id": "sector-grow",
+      "startTime": 60000,
+      "endTime": 68000,
+      "label": "Growth Years",
+      "color": "rgba(167, 139, 250, 0.35)"
+    },
+    {
+      "id": "sector-hold",
+      "startTime": 68000,
+      "endTime": 70000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "blocks-build",
+      "startTime": 70000,
+      "endTime": 78000,
+      "label": "75% Builds",
+      "color": "rgba(234, 88, 12, 0.38)"
+    },
+    {
+      "id": "call-action",
+      "startTime": 78000,
+      "endTime": 82000,
+      "label": "Call to Action",
+      "color": "rgba(52, 211, 153, 0.3)"
+    },
+    {
+      "id": "sc-explore",
+      "startTime": 82000,
+      "endTime": 84000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "sources-rise",
+      "startTime": 84000,
+      "endTime": 100000,
+      "label": "Sources Rise",
+      "color": "rgba(78, 154, 241, 0.35)"
+    },
+    {
+      "id": "sc-dominates",
+      "startTime": 100000,
+      "endTime": 106000,
+      "label": "Supply Chain",
+      "color": "rgba(231, 76, 60, 0.35)"
+    },
+    {
+      "id": "trend-hold",
+      "startTime": 106000,
+      "endTime": 108000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    },
+    {
+      "id": "spend-intro",
+      "startTime": 108000,
+      "endTime": 110000,
+      "label": "Spend & Intensity",
+      "color": "rgba(244, 99, 58, 0.22)"
+    },
+    {
+      "id": "spend-draw",
+      "startTime": 110000,
+      "endTime": 118000,
+      "label": "Pen Draws",
+      "color": "rgba(244, 99, 58, 0.38)"
+    },
+    {
+      "id": "spend-explore",
+      "startTime": 118000,
+      "endTime": 120000,
+      "label": "Explore",
+      "color": "rgba(107, 114, 128, 0.22)"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "phase-0-headline-facts",
+      "tool": "tools/headline-facts.html",
+      "startTime": 0,
+      "endTime": 25000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "revealFacts": 0
+          }
+        },
+        {
+          "time": 3000,
+          "state": {
+            "revealFacts": 1
+          }
+        },
+        {
+          "time": 9000,
+          "state": {
+            "revealFacts": 2
+          }
+        },
+        {
+          "time": 15000,
+          "state": {
+            "revealFacts": 3
+          }
+        },
+        {
+          "time": 20000,
+          "state": {
+            "revealFacts": 3,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-1b-emissions-per-body",
+      "tool": "tools/emissions-per-body.html",
+      "startTime": 25000,
+      "endTime": 42000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "revealYear": 2020
+          }
+        },
+        {
+          "time": 2000,
+          "state": {
+            "revealYear": 2025,
+            "streamTime": true,
+            "segmentStartTimeMs": 27000,
+            "segmentEndTimeMs": 35000
+          }
+        },
+        {
+          "time": 10000,
+          "state": {
+            "revealYear": 2025
+          }
+        },
+        {
+          "time": 14000,
+          "state": {
+            "revealYear": 2025,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-2-sector-donut",
+      "tool": "tools/sector-donut.html",
+      "startTime": 42000,
+      "endTime": 54000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "phase": 1
+          }
+        },
+        {
+          "time": 3000,
+          "state": {
+            "phase": 2
+          }
+        },
+        {
+          "time": 6000,
+          "state": {
+            "phase": 3
+          }
+        },
+        {
+          "time": 10000,
+          "state": {
+            "phase": 3,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-3-sector-bubbles",
+      "tool": "tools/sector-bubbles.html",
+      "startTime": 54000,
+      "endTime": 70000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "action": "setYear",
+            "year": 2020,
+            "focusSectors": [],
+            "dimOthers": false,
+            "pulse": false,
+            "yearSlider": false
+          }
+        },
+        {
+          "time": 6000,
+          "state": {
+            "action": "playYears",
+            "fromYear": 2020,
+            "toYear": 2025,
+            "streamTime": true,
+            "segmentStartTimeMs": 60000,
+            "segmentEndTimeMs": 68000,
+            "focusSectors": [
+              "nhs_wales",
+              "local_auth"
+            ],
+            "dimOthers": true,
+            "pulse": false,
+            "yearSlider": false
+          }
+        },
+        {
+          "time": 14000,
+          "state": {
+            "action": "freezeYear",
+            "year": 2025,
+            "yearSlider": true,
+            "focusSectors": [],
+            "dimOthers": false,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-4-supply-chain-blocks",
+      "tool": "tools/supply-chain-blocks.html",
+      "startTime": 70000,
+      "endTime": 84000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "revealBlocks": 0
+          }
+        },
+        {
+          "time": 1600,
+          "state": {
+            "revealBlocks": 1
+          }
+        },
+        {
+          "time": 3200,
+          "state": {
+            "revealBlocks": 2
+          }
+        },
+        {
+          "time": 4800,
+          "state": {
+            "revealBlocks": 3
+          }
+        },
+        {
+          "time": 6400,
+          "state": {
+            "revealBlocks": 4
+          }
+        },
+        {
+          "time": 8000,
+          "state": {
+            "revealBlocks": 4,
+            "showFootnote": true
+          }
+        },
+        {
+          "time": 12000,
+          "state": {
+            "revealBlocks": 4,
+            "showFootnote": true,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-5-emissions-trend",
+      "tool": "tools/emissions-trend.html",
+      "startTime": 84000,
+      "endTime": 108000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "minYear": 2020,
+            "maxYear": 2022,
+            "fixedDomainEndYear": 2025,
+            "showAnnotation": false,
+            "annotationYear": 2024,
+            "streamTime": true,
+            "segmentStartTimeMs": 84000,
+            "segmentEndTimeMs": 92000
+          }
+        },
+        {
+          "time": 8000,
+          "state": {
+            "minYear": 2022,
+            "maxYear": 2025,
+            "fixedDomainEndYear": 2025,
+            "showAnnotation": true,
+            "annotationYear": 2024,
+            "streamTime": true,
+            "segmentStartTimeMs": 92000,
+            "segmentEndTimeMs": 100000
+          }
+        },
+        {
+          "time": 16000,
+          "state": {
+            "minYear": 2020,
+            "maxYear": 2025,
+            "fixedDomainEndYear": 2025,
+            "showAnnotation": false,
+            "streamTime": false
+          }
+        },
+        {
+          "time": 20000,
+          "state": {
+            "minYear": 2020,
+            "maxYear": 2025,
+            "fixedDomainEndYear": 2025,
+            "showAnnotation": false,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "phase-6-spend-intensity",
+      "tool": "tools/spend-intensity.html",
+      "startTime": 108000,
+      "endTime": 120000,
+      "sendData": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {
+            "revealYear": 2020
+          }
+        },
+        {
+          "time": 2000,
+          "state": {
+            "revealYear": 2025,
+            "streamTime": true,
+            "segmentStartTimeMs": 110000,
+            "segmentEndTimeMs": 118000
+          }
+        },
+        {
+          "time": 10000,
+          "state": {
+            "revealYear": 2025
+          }
+        },
+        {
+          "time": 11000,
+          "state": {
+            "revealYear": 2025,
+            "pauseOnInteract": true
+          }
+        }
+      ],
+      "overlays": []
+    }
+  ]
+}

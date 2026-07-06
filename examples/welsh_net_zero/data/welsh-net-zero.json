@@ -1,0 +1,735 @@
+{
+  "meta": {
+    "title": "Welsh Public Sector Net Zero 2025",
+    "source": "Welsh Government / Public Sector Net Zero 2025 Report",
+    "yearRange": [
+      2020,
+      2025
+    ],
+    "netZeroTarget": 2030,
+    "totalEmissions2025": 3958,
+    "reportingBodies": 82
+  },
+  "sectors": [
+    {
+      "id": "local_auth",
+      "name": "Local Authorities",
+      "color": "#4e9af1"
+    },
+    {
+      "id": "nhs_wales",
+      "name": "NHS Wales",
+      "color": "#e74c3c"
+    },
+    {
+      "id": "other_psbs",
+      "name": "Other PSBs",
+      "color": "#f39c12"
+    },
+    {
+      "id": "universities",
+      "name": "Universities",
+      "color": "#2ecc71"
+    },
+    {
+      "id": "welsh_gov",
+      "name": "Welsh Government",
+      "color": "#a78bfa"
+    }
+  ],
+  "emissionsTrend": [
+    {
+      "sourceId": "supply_chain",
+      "sourceName": "Supply Chain",
+      "color": "#F4633A",
+      "values": [
+        {
+          "year": 2020,
+          "ktco2e": 1600
+        },
+        {
+          "year": 2021,
+          "ktco2e": 1750
+        },
+        {
+          "year": 2022,
+          "ktco2e": 1950
+        },
+        {
+          "year": 2023,
+          "ktco2e": 2220
+        },
+        {
+          "year": 2024,
+          "ktco2e": 2554
+        },
+        {
+          "year": 2025,
+          "ktco2e": 2963
+        }
+      ]
+    },
+    {
+      "sourceId": "buildings",
+      "sourceName": "Buildings",
+      "color": "#515254",
+      "values": [
+        {
+          "year": 2020,
+          "ktco2e": 380
+        },
+        {
+          "year": 2021,
+          "ktco2e": 400
+        },
+        {
+          "year": 2022,
+          "ktco2e": 440
+        },
+        {
+          "year": 2023,
+          "ktco2e": 490
+        },
+        {
+          "year": 2024,
+          "ktco2e": 540
+        },
+        {
+          "year": 2025,
+          "ktco2e": 546
+        }
+      ]
+    },
+    {
+      "sourceId": "transport",
+      "sourceName": "Transport",
+      "color": "#7a7c7f",
+      "values": [
+        {
+          "year": 2020,
+          "ktco2e": 300
+        },
+        {
+          "year": 2021,
+          "ktco2e": 320
+        },
+        {
+          "year": 2022,
+          "ktco2e": 345
+        },
+        {
+          "year": 2023,
+          "ktco2e": 380
+        },
+        {
+          "year": 2024,
+          "ktco2e": 413
+        },
+        {
+          "year": 2025,
+          "ktco2e": 430
+        }
+      ]
+    },
+    {
+      "sourceId": "medical_gases",
+      "sourceName": "Medical Gases",
+      "color": "#a4a6a9",
+      "values": [
+        {
+          "year": 2020,
+          "ktco2e": 6
+        },
+        {
+          "year": 2021,
+          "ktco2e": 7
+        },
+        {
+          "year": 2022,
+          "ktco2e": 8
+        },
+        {
+          "year": 2023,
+          "ktco2e": 9
+        },
+        {
+          "year": 2024,
+          "ktco2e": 11
+        },
+        {
+          "year": 2025,
+          "ktco2e": 11
+        }
+      ]
+    },
+    {
+      "sourceId": "waste",
+      "sourceName": "Waste",
+      "color": "#cdd0d3",
+      "values": [
+        {
+          "year": 2020,
+          "ktco2e": 5
+        },
+        {
+          "year": 2021,
+          "ktco2e": 6
+        },
+        {
+          "year": 2022,
+          "ktco2e": 7
+        },
+        {
+          "year": 2023,
+          "ktco2e": 8
+        },
+        {
+          "year": 2024,
+          "ktco2e": 8
+        },
+        {
+          "year": 2025,
+          "ktco2e": 8
+        }
+      ]
+    }
+  ],
+  "sectorSeries": [
+    {
+      "sectorId": "local_auth",
+      "sectorName": "Local Authorities",
+      "color": "#4e9af1",
+      "bodies": 22,
+      "values": [
+        {
+          "year": 2020,
+          "total": 1031,
+          "supplyChain": 720,
+          "directEmissions": 306
+        },
+        {
+          "year": 2021,
+          "total": 1117,
+          "supplyChain": 788,
+          "directEmissions": 324
+        },
+        {
+          "year": 2022,
+          "total": 1238,
+          "supplyChain": 878,
+          "directEmissions": 353
+        },
+        {
+          "year": 2023,
+          "total": 1389,
+          "supplyChain": 999,
+          "directEmissions": 392
+        },
+        {
+          "year": 2024,
+          "total": 1587,
+          "supplyChain": 1149,
+          "directEmissions": 429
+        },
+        {
+          "year": 2025,
+          "total": 1784,
+          "supplyChain": 1333,
+          "directEmissions": 439
+        }
+      ]
+    },
+    {
+      "sectorId": "nhs_wales",
+      "sectorName": "NHS Wales",
+      "color": "#e74c3c",
+      "bodies": 18,
+      "values": [
+        {
+          "year": 2020,
+          "total": 802,
+          "supplyChain": 561,
+          "directEmissions": 238
+        },
+        {
+          "year": 2021,
+          "total": 869,
+          "supplyChain": 613,
+          "directEmissions": 252
+        },
+        {
+          "year": 2022,
+          "total": 963,
+          "supplyChain": 693,
+          "directEmissions": 275
+        },
+        {
+          "year": 2023,
+          "total": 1080,
+          "supplyChain": 789,
+          "directEmissions": 305
+        },
+        {
+          "year": 2024,
+          "total": 1234,
+          "supplyChain": 913,
+          "directEmissions": 334
+        },
+        {
+          "year": 2025,
+          "total": 1371,
+          "supplyChain": 1037,
+          "directEmissions": 342
+        }
+      ]
+    },
+    {
+      "sectorId": "other_psbs",
+      "sectorName": "Other PSBs",
+      "color": "#f39c12",
+      "bodies": 25,
+      "values": [
+        {
+          "year": 2020,
+          "total": 206,
+          "supplyChain": 144,
+          "directEmissions": 61
+        },
+        {
+          "year": 2021,
+          "total": 223,
+          "supplyChain": 158,
+          "directEmissions": 65
+        },
+        {
+          "year": 2022,
+          "total": 248,
+          "supplyChain": 176,
+          "directEmissions": 71
+        },
+        {
+          "year": 2023,
+          "total": 278,
+          "supplyChain": 200,
+          "directEmissions": 78
+        },
+        {
+          "year": 2024,
+          "total": 317,
+          "supplyChain": 230,
+          "directEmissions": 86
+        },
+        {
+          "year": 2025,
+          "total": 337,
+          "supplyChain": 267,
+          "directEmissions": 88
+        }
+      ]
+    },
+    {
+      "sectorId": "universities",
+      "sectorName": "Universities",
+      "color": "#2ecc71",
+      "bodies": 11,
+      "values": [
+        {
+          "year": 2020,
+          "total": 160,
+          "supplyChain": 112,
+          "directEmissions": 48
+        },
+        {
+          "year": 2021,
+          "total": 174,
+          "supplyChain": 123,
+          "directEmissions": 50
+        },
+        {
+          "year": 2022,
+          "total": 193,
+          "supplyChain": 137,
+          "directEmissions": 55
+        },
+        {
+          "year": 2023,
+          "total": 216,
+          "supplyChain": 155,
+          "directEmissions": 61
+        },
+        {
+          "year": 2024,
+          "total": 247,
+          "supplyChain": 179,
+          "directEmissions": 67
+        },
+        {
+          "year": 2025,
+          "total": 265,
+          "supplyChain": 207,
+          "directEmissions": 68
+        }
+      ]
+    },
+    {
+      "sectorId": "welsh_gov",
+      "sectorName": "Welsh Government",
+      "color": "#a78bfa",
+      "bodies": 6,
+      "values": [
+        {
+          "year": 2020,
+          "total": 69,
+          "supplyChain": 48,
+          "directEmissions": 20
+        },
+        {
+          "year": 2021,
+          "total": 74,
+          "supplyChain": 53,
+          "directEmissions": 22
+        },
+        {
+          "year": 2022,
+          "total": 83,
+          "supplyChain": 59,
+          "directEmissions": 24
+        },
+        {
+          "year": 2023,
+          "total": 93,
+          "supplyChain": 67,
+          "directEmissions": 26
+        },
+        {
+          "year": 2024,
+          "total": 106,
+          "supplyChain": 77,
+          "directEmissions": 29
+        },
+        {
+          "year": 2025,
+          "total": 119,
+          "supplyChain": 89,
+          "directEmissions": 29
+        }
+      ]
+    }
+  ],
+  "treemap2025": {
+    "name": "Welsh Public Sector",
+    "children": [
+      {
+        "id": "local_auth",
+        "name": "Local Authorities",
+        "color": "#4e9af1",
+        "children": [
+          {
+            "id": "la_sc",
+            "name": "Supply Chain",
+            "value": 1341
+          },
+          {
+            "id": "la_build",
+            "name": "Buildings",
+            "value": 246
+          },
+          {
+            "id": "la_trans",
+            "name": "Transport",
+            "value": 194
+          },
+          {
+            "id": "la_med",
+            "name": "Medical Gases",
+            "value": 2
+          },
+          {
+            "id": "la_waste",
+            "name": "Waste",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "nhs_wales",
+        "name": "NHS Wales",
+        "color": "#e74c3c",
+        "children": [
+          {
+            "id": "nhs_sc",
+            "name": "Supply Chain",
+            "value": 1017
+          },
+          {
+            "id": "nhs_build",
+            "name": "Buildings",
+            "value": 189
+          },
+          {
+            "id": "nhs_trans",
+            "name": "Transport",
+            "value": 137
+          },
+          {
+            "id": "nhs_med",
+            "name": "Medical Gases",
+            "value": 21
+          },
+          {
+            "id": "nhs_waste",
+            "name": "Waste",
+            "value": 7
+          }
+        ]
+      },
+      {
+        "id": "other_psbs",
+        "name": "Other PSBs",
+        "color": "#f39c12",
+        "children": [
+          {
+            "id": "ops_sc",
+            "name": "Supply Chain",
+            "value": 253
+          },
+          {
+            "id": "ops_build",
+            "name": "Buildings",
+            "value": 47
+          },
+          {
+            "id": "ops_trans",
+            "name": "Transport",
+            "value": 36
+          },
+          {
+            "id": "ops_med",
+            "name": "Medical Gases",
+            "value": 1
+          },
+          {
+            "id": "ops_waste",
+            "name": "Waste",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "universities",
+        "name": "Universities",
+        "color": "#2ecc71",
+        "children": [
+          {
+            "id": "uni_sc",
+            "name": "Supply Chain",
+            "value": 199
+          },
+          {
+            "id": "uni_build",
+            "name": "Buildings",
+            "value": 37
+          },
+          {
+            "id": "uni_trans",
+            "name": "Transport",
+            "value": 28
+          },
+          {
+            "id": "uni_med",
+            "name": "Medical Gases",
+            "value": 1
+          },
+          {
+            "id": "uni_waste",
+            "name": "Waste",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "id": "welsh_gov",
+        "name": "Welsh Government",
+        "color": "#a78bfa",
+        "children": [
+          {
+            "id": "wg_sc",
+            "name": "Supply Chain",
+            "value": 98
+          },
+          {
+            "id": "wg_build",
+            "name": "Buildings",
+            "value": 18
+          },
+          {
+            "id": "wg_trans",
+            "name": "Transport",
+            "value": 14
+          },
+          {
+            "id": "wg_med",
+            "name": "Medical Gases",
+            "value": 0
+          },
+          {
+            "id": "wg_waste",
+            "name": "Waste",
+            "value": 1
+          }
+        ]
+      }
+    ]
+  },
+  "supplyChainHistory": [
+    {
+      "year": 2020,
+      "emissions": 1542,
+      "spend": 4.4,
+      "bodies": 54
+    },
+    {
+      "year": 2021,
+      "emissions": 2584,
+      "spend": 7.1,
+      "bodies": 63
+    },
+    {
+      "year": 2022,
+      "emissions": 2300,
+      "spend": 7,
+      "bodies": 70
+    },
+    {
+      "year": 2023,
+      "emissions": 2118,
+      "spend": 10.2,
+      "bodies": 74
+    },
+    {
+      "year": 2024,
+      "emissions": 2554,
+      "spend": 11.8,
+      "bodies": 79
+    },
+    {
+      "year": 2025,
+      "emissions": 2963,
+      "spend": 12,
+      "bodies": 82
+    }
+  ],
+  "sectorShares2025": [
+    {
+      "id": "local_auth",
+      "name": "Local Authorities",
+      "share": 45,
+      "emissions": 1784,
+      "color": "#4e9af1"
+    },
+    {
+      "id": "nhs_wales",
+      "name": "NHS Wales",
+      "share": 35,
+      "emissions": 1371,
+      "color": "#e74c3c"
+    },
+    {
+      "id": "other_psbs",
+      "name": "Other PSBs",
+      "share": 9,
+      "emissions": 337,
+      "color": "#f39c12"
+    },
+    {
+      "id": "universities",
+      "name": "Universities",
+      "share": 7,
+      "emissions": 265,
+      "color": "#2ecc71"
+    },
+    {
+      "id": "welsh_gov",
+      "name": "Welsh Government",
+      "share": 3,
+      "emissions": 131,
+      "color": "#a78bfa"
+    }
+  ],
+  "emissionsPerBody": [
+    {
+      "year": 2020,
+      "bodies": 47,
+      "totalEmissions": 2234,
+      "perBody": 47.5
+    },
+    {
+      "year": 2021,
+      "bodies": 54,
+      "totalEmissions": 3326,
+      "perBody": 61.6
+    },
+    {
+      "year": 2022,
+      "bodies": 69,
+      "totalEmissions": 3302,
+      "perBody": 47.9
+    },
+    {
+      "year": 2023,
+      "bodies": 71,
+      "totalEmissions": 3120,
+      "perBody": 43.9
+    },
+    {
+      "year": 2024,
+      "bodies": 79,
+      "totalEmissions": 3540,
+      "perBody": 44.8
+    },
+    {
+      "year": 2025,
+      "bodies": 82,
+      "totalEmissions": 3958,
+      "perBody": 48.3
+    }
+  ],
+  "spendIntensity": [
+    {
+      "year": 2020,
+      "spendBn": 4.6,
+      "scEmissions": 1547,
+      "intensity": 336.3
+    },
+    {
+      "year": 2021,
+      "spendBn": 7.3,
+      "scEmissions": 2577,
+      "intensity": 352.9
+    },
+    {
+      "year": 2022,
+      "spendBn": 7.2,
+      "scEmissions": 2298,
+      "intensity": 319.2
+    },
+    {
+      "year": 2023,
+      "spendBn": 10.5,
+      "scEmissions": 2137,
+      "intensity": 203.5
+    },
+    {
+      "year": 2024,
+      "spendBn": 11.9,
+      "scEmissions": 2559,
+      "intensity": 215
+    },
+    {
+      "year": 2025,
+      "spendBn": 12,
+      "scEmissions": 2963,
+      "intensity": 246.9
+    }
+  ]
+}

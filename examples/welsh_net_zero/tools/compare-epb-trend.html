@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compare: Emissions Trend &amp; Per Body</title>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+    }
+    #iframe-trend {
+      flex: 3;
+      width: 100%;
+      border: none;
+      min-height: 0;
+    }
+    #iframe-epb {
+      flex: 2;
+      width: 100%;
+      border: none;
+      min-height: 0;
+    }
+    .divider {
+      height: 2px;
+      background: #d1d5db;
+      flex: 0 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="iframe-trend" src="emissions-trend.html"></iframe>
+  <div class="divider"></div>
+  <iframe id="iframe-epb"   src="emissions-per-body.html"></iframe>
+
+  <script>
+    const iframeEpb   = document.getElementById('iframe-epb');
+    const iframeTrend = document.getElementById('iframe-trend');
+    let initData = undefined;
+    const loadedSet = new Set();
+
+    // Full-reveal states for each child
+    const TREND_FINAL_STATE = { minYear: 2020, maxYear: 2025, fixedDomainEndYear: 2025, showAnnotation: false, streamTime: false };
+    const EPB_FINAL_STATE   = { revealYear: 2025 };
+
+    function sendToTrend(msg) { if (iframeTrend.contentWindow) iframeTrend.contentWindow.postMessage(msg, '*'); }
+    function sendToEpb(msg)   { if (iframeEpb.contentWindow)   iframeEpb.contentWindow.postMessage(msg, '*'); }
+
+    iframeTrend.onload = () => {
+      loadedSet.add('trend');
+      if (initData !== undefined) sendToTrend({ type: 'DIVE_INIT', data: initData });
+      sendToTrend({ type: 'DIVE_STATE', state: TREND_FINAL_STATE, time: 0 });
+    };
+
+    iframeEpb.onload = () => {
+      loadedSet.add('epb');
+      if (initData !== undefined) sendToEpb({ type: 'DIVE_INIT', data: initData });
+      sendToEpb({ type: 'DIVE_STATE', state: EPB_FINAL_STATE, time: 0 });
+    };
+
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p || !p.type) return;
+      // Ignore messages originating from child iframes to avoid loops
+      if (event.source === iframeTrend.contentWindow || event.source === iframeEpb.contentWindow) return;
+
+      if (p.type === 'DIVE_INIT') {
+        initData = p.data;
+        if (loadedSet.has('trend')) sendToTrend({ type: 'DIVE_INIT', data: initData });
+        if (loadedSet.has('epb'))   sendToEpb({ type: 'DIVE_INIT', data: initData });
+        // Re-apply final states after data arrives
+        if (loadedSet.has('trend')) sendToTrend({ type: 'DIVE_STATE', state: TREND_FINAL_STATE, time: 0 });
+        if (loadedSet.has('epb'))   sendToEpb({ type: 'DIVE_STATE', state: EPB_FINAL_STATE, time: 0 });
+      } else if (p.type === 'DIVE_STATE' || p.type === 'DIVE_PLAYBACK') {
+        // Keep both children at their final/full state regardless of narrative time
+        if (loadedSet.has('trend')) sendToTrend({ type: 'DIVE_STATE', state: TREND_FINAL_STATE, time: 0 });
+        if (loadedSet.has('epb'))   sendToEpb({ type: 'DIVE_STATE', state: EPB_FINAL_STATE, time: 0 });
+      }
+    });
+  </script>
+</body>
+</html>

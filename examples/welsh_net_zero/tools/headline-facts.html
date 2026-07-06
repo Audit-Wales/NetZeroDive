@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Headline Facts</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #e9e8e7;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #515254;
+    }
+    #stage {
+      width: 100%; height: 100%;
+      display: grid;
+      grid-template-rows: 1fr auto 1fr;
+      align-items: center;
+      padding: 32px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Transitions ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Title ── */
+    #title-text {
+      font-size: clamp(16px, 2.4vw, 22px);
+      font-weight: 400;
+      color: #515254;
+      text-align: center;
+      letter-spacing: 0.03em;
+      grid-row: 1;
+      align-self: end;
+      padding-bottom: 12px;
+    }
+
+    /* ── Big number ── */
+    #number-row {
+      grid-row: 2;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.18em;
+      line-height: 1;
+    }
+    #counter {
+      font-size: clamp(56px, 11vw, 108px);
+      font-weight: 700;
+      color: #F4633A;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    #unit {
+      font-size: clamp(28px, 5.5vw, 54px);
+      font-weight: 600;
+      color: #F4633A;
+    }
+
+    /* ── Callout cards ── */
+    #facts-row {
+      grid-row: 3;
+      display: flex;
+      gap: clamp(16px, 3vw, 48px);
+      justify-content: center;
+      align-items: stretch;
+      padding-top: 24px;
+    }
+    .callout {
+      background: #ffffff;
+      border-left: 6px solid #F4633A;
+      border-radius: 14px;
+      box-shadow: 0 6px 32px rgba(81,82,84,0.18);
+      padding: clamp(24px, 3vw, 36px) clamp(26px, 3.5vw, 42px);
+      max-width: 400px;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #fact-1 {
+      transform: translateX(-140px);
+      transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #fact-2 {
+      transform: translateX(140px);
+      transition: opacity 0.55s ease 0.8s, transform 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.8s;
+    }
+    .callout.visible { opacity: 1; transform: translateX(0); pointer-events: auto; }
+    .callout-pct {
+      display: flex;
+      align-items: baseline;
+      gap: 1px;
+      line-height: 1;
+    }
+    .pct-num {
+      font-size: clamp(52px, 8.5vw, 86px);
+      font-weight: 700;
+      color: #F4633A;
+      font-variant-numeric: tabular-nums;
+      display: inline-block;
+    }
+    .pct-sym {
+      font-size: clamp(30px, 5vw, 52px);
+      font-weight: 700;
+      color: #F4633A;
+    }
+    .callout-label {
+      font-size: clamp(14px, 1.8vw, 18px);
+      font-weight: 700;
+      color: #515254;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 6px;
+    }
+    .callout-sub {
+      font-size: clamp(13px, 1.5vw, 16px);
+      color: rgba(81,82,84,0.7);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+    @keyframes pct-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.22); }
+      70%  { transform: scale(0.94); }
+      100% { transform: scale(1); }
+    }
+    .pct-num.pop { animation: pct-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+    /* ── Explore button ── */
+    #explore-btn {
+      position: absolute;
+      top: clamp(16px, 3vh, 32px);
+      right: clamp(16px, 3vw, 48px);
+      background: #F4633A;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: clamp(12px, 1.3vw, 14px);
+      font-weight: 600;
+      font-family: Arial, "Segoe UI", sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(244,99,58,0.35);
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    #explore-btn:hover { background: #e0522e; transform: scale(1.04); }
+    #explore-btn:active { transform: scale(0.97); }
+
+    /* ── Coverage modal ── */
+    #coverage-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #coverage-modal.open { opacity: 1; pointer-events: auto; }
+    #coverage-modal-inner {
+      position: relative;
+      width: min(92vw, 1100px);
+      height: min(88vh, 680px);
+      background: #f9fafb;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      transform: scale(0.94);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #coverage-modal.open #coverage-modal-inner { transform: scale(1); }
+    #coverage-modal iframe {
+      width: 100%; height: 100%; border: none; display: block;
+    }
+    #coverage-modal-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      width: 32px; height: 32px;
+      background: rgba(17,24,39,0.55);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease;
+      z-index: 10;
+    }
+    #coverage-modal-close:hover { background: rgba(17,24,39,0.85); }
+
+    /* ── Background watermark ── */
+    #watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -54%);
+      font-size: clamp(180px, 35vw, 340px);
+      font-weight: 900;
+      color: #F4633A;
+      opacity: 0.06;
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      transition: opacity 0.8s ease;
+    }
+    #watermark.visible { opacity: 0.08; }
+
+    /* ── Reporting bodies pill ── */
+    #bodies-pill {
+      position: absolute;
+      top: clamp(16px, 3vh, 32px);
+      right: clamp(16px, 3vw, 48px);
+      background: rgba(244, 99, 58, 0.1);
+      border: 1.5px solid #F4633A;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: clamp(12px, 1.3vw, 14px);
+      color: #F4633A;
+      font-weight: 600;
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+    }
+    #bodies-pill.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <!-- Reporting bodies badge -->
+    <div id="bodies-pill" class="reveal">82 reporting bodies</div>
+
+    <!-- Arrow decoration -->
+    <div id="watermark">↑</div>
+
+    <!-- Explore coverage button -->
+    <button id="explore-btn" aria-label="Explore coverage growth chart">
+      Explore Coverage <span aria-hidden="true">→</span>
+    </button>
+
+    <!-- Title -->
+    <div id="title-text" class="reveal">Total Welsh Public Sector Emissions (2025)</div>
+
+    <!-- Big number -->
+    <div id="number-row" class="reveal">
+      <span id="counter">0</span>
+      <span id="unit">ktCO₂e</span>
+    </div>
+
+    <!-- Callout cards -->
+    <div id="facts-row">
+      <div id="fact-1" class="callout">
+        <div class="callout-pct"><span class="pct-num" id="pct1">0</span><span class="pct-sym">%</span></div>
+        <div class="callout-label">increase</div>
+        <div class="callout-sub">in total emissions between 2024 and 2025</div>
+      </div>
+      <div id="fact-2" class="callout">
+        <div class="callout-pct"><span class="pct-num" id="pct2">0</span><span class="pct-sym">%</span></div>
+        <div class="callout-label">increase</div>
+        <div class="callout-sub">since the first year of reporting in 2020</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coverage modal -->
+  <div id="coverage-modal" role="dialog" aria-modal="true" aria-label="Coverage growth chart">
+    <div id="coverage-modal-inner">
+      <button id="coverage-modal-close" aria-label="Close">&times;</button>
+      <iframe id="coverage-iframe" src="" title="Coverage Growth"></iframe>
+    </div>
+  </div>
+
+  <script>
+    let chartData = null;
+    let currentPhase = -1;
+    let rafId = null;
+    let fallbackBootstrapStarted = false;
+    let lastNarrativeState = null;
+
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    const titleEl   = document.getElementById('title-text');
+    const numRow    = document.getElementById('number-row');
+    const counterEl = document.getElementById('counter');
+    const fact1El   = document.getElementById('fact-1');
+    const fact2El   = document.getElementById('fact-2');
+    const pct1El    = document.getElementById('pct1');
+    const pct2El    = document.getElementById('pct2');
+    const arrowEl   = document.getElementById('watermark');
+    const pillEl    = document.getElementById('bodies-pill');
+    const exploreBtn    = document.getElementById('explore-btn');
+    const coverageModal = document.getElementById('coverage-modal');
+    const coverageIframe = document.getElementById('coverage-iframe');
+    const COVERAGE_URL  = new URL('coverage-growth.html', window.location.href).toString();
+
+    exploreBtn.addEventListener('click', () => {
+      if (!coverageIframe.src || coverageIframe.src === window.location.href) {
+        coverageIframe.src = COVERAGE_URL;
+      }
+      coverageModal.classList.add('open');
+      coverageModal.focus();
+    });
+    document.getElementById('coverage-modal-close').addEventListener('click', () => {
+      coverageModal.classList.remove('open');
+    });
+    coverageModal.addEventListener('click', (e) => {
+      if (e.target === coverageModal) coverageModal.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') coverageModal.classList.remove('open');
+    });
+
+    const fmtMain = d3.format(',.0f');
+    let cancelRafs = [];
+
+    function animateNum(el, target, duration, onDone) {
+      const start = performance.now();
+      let r;
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(target * ease);
+        if (t < 1) { r = requestAnimationFrame(tick); }
+        else { el.textContent = target; if (onDone) onDone(); }
+      };
+      r = requestAnimationFrame(tick);
+      cancelRafs.push(() => cancelAnimationFrame(r));
+    }
+
+    function popEl(el) {
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    }
+
+    function applyPhase(phase) {
+      if (phase === currentPhase) return;
+      const prev = currentPhase;
+      currentPhase = phase;
+
+      const total  = (chartData && chartData.meta && chartData.meta.totalEmissions2025) || 3958;
+      const bodies = (chartData && chartData.meta && chartData.meta.reportingBodies) || 82;
+      pillEl.textContent = bodies + ' reporting bodies';
+
+      /* Phase 1: title + big number + arrow + pill */
+      if (phase >= 1 && prev < 1) {
+        titleEl.classList.add('visible');
+        numRow.classList.add('visible');
+        arrowEl.classList.add('visible');
+        pillEl.classList.add('visible');
+        cancelRafs.forEach(fn => fn()); cancelRafs = [];
+        const s = performance.now(); let r;
+        const tick = (now) => {
+          const t = Math.min(1, (now - s) / 1400);
+          const ease = 1 - Math.pow(1 - t, 3);
+          counterEl.textContent = fmtMain(Math.round(total * ease));
+          if (t < 1) r = requestAnimationFrame(tick);
+          else counterEl.textContent = fmtMain(total);
+        };
+        r = requestAnimationFrame(tick);
+        cancelRafs.push(() => cancelAnimationFrame(r));
+      }
+      if (phase < 1) {
+        titleEl.classList.remove('visible'); numRow.classList.remove('visible');
+        arrowEl.classList.remove('visible'); pillEl.classList.remove('visible');
+        cancelRafs.forEach(fn => fn()); cancelRafs = [];
+        counterEl.textContent = '0';
+      }
+
+      /* Phase 2: fact-1 slides in from LEFT, pct counts up to 12 */
+      if (phase >= 2 && prev < 2) {
+        fact1El.classList.add('visible');
+        pct1El.textContent = '0';
+        setTimeout(() => animateNum(pct1El, 12, 650, () => popEl(pct1El)), 450);
+      }
+      if (phase < 2) { fact1El.classList.remove('visible'); pct1El.textContent = '0'; }
+
+      /* Phase 3: fact-2 slides in from RIGHT (0.8s CSS delay), pct counts up to 78 */
+      if (phase >= 3 && prev < 3) {
+        fact2El.classList.add('visible');
+        pct2El.textContent = '0';
+        setTimeout(() => animateNum(pct2El, 78, 900, () => popEl(pct2El)), 1100);
+      }
+      if (phase < 3) { fact2El.classList.remove('visible'); pct2El.textContent = '0'; }
+    }
+
+    function applyState(state) {
+      const phase = (typeof state.revealFacts === 'number') ? state.revealFacts : 0;
+      applyPhase(phase);
+    }
+
+    function initialize(data) {
+      chartData = data;
+    }
+
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        initialize(data);
+        if (lastNarrativeState) applyState(lastNarrativeState);
+        else applyPhase(3);
+      } catch(e) {
+        console.error('Headline Facts bootstrap failed', e);
+        applyPhase(3);
+      }
+    }
+
+    window.addEventListener('message', function(event) {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState);
+      }
+    });
+
+    window.setTimeout(function() { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

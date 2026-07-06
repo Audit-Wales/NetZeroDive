@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DIVE Example: Welsh Public Sector Net Zero 2025</title>
+    <style>
+      :root {
+        --bg: #0a0f1e;
+        --bg-2: #111827;
+        --ink: #f0f9ff;
+        --muted: #94a3b8;
+        --accent: #34d399;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Sora", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 80% 15%, rgba(52, 211, 153, 0.18), transparent 32%),
+          radial-gradient(circle at 12% 72%, rgba(78, 154, 241, 0.15), transparent 30%),
+          linear-gradient(145deg, var(--bg), var(--bg-2));
+      }
+
+      body { display: grid; grid-template-rows: auto 1fr; }
+
+      header { padding: 16px 20px 10px; }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.2rem, 3vw, 1.7rem);
+        letter-spacing: 0.01em;
+      }
+
+      p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        max-width: 70ch;
+        font-size: 0.95rem;
+      }
+
+      main { padding: 10px 20px 20px; }
+
+      dive-video {
+        display: block;
+        width: min(1200px, 100%);
+        height: min(74vh, 760px);
+        min-height: 420px;
+        margin: 0 auto;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+
+      .hint {
+        text-align: center;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      a { color: var(--accent); }
+
+      @media (max-width: 900px) {
+        main { padding: 10px 10px 16px; }
+        dive-video { height: min(72vh, 600px); min-height: 380px; border-radius: 10px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Welsh Public Sector Net Zero 2025</h1>
+      <p>
+        A DIVE narrative using Welsh Government emissions data: how coverage expansion drives reported growth,
+        which sectors dominate, and why procurement is the key lever for Net Zero 2030.
+      </p>
+    </header>
+
+    <main>
+      <dive-video src="story.json"></dive-video>
+      <div class="hint">Play to watch the scripted narrative. Pause anytime to explore.</div>
+      <p>Open the interactive tools below:</p>
+      <ul>
+        <li><a href="tools/headline-facts.html" target="_blank">Headline Facts</a></li>
+        <li><a href="tools/emissions-per-body.html" target="_blank">Emissions per Reporting Body (line chart)</a></li>
+        <li><a href="tools/coverage-growth.html" target="_blank">Coverage Growth (bar + line)</a></li>
+        <li><a href="tools/emissions-trend.html" target="_blank">Emissions Trend (line chart)</a></li>
+        <li><a href="tools/sector-bubbles.html" target="_blank">Sector Bubbles</a></li>
+        <li><a href="tools/sector-donut.html" target="_blank">Sector Donut</a></li>
+        <li><a href="tools/compare-epb-trend.html" target="_blank">Compare: Per Body + Coverage Growth (split)</a></li>
+        <li><a href="tools/stacked-bars.html" target="_blank">Stacked Bars</a></li>
+        <li><a href="tools/supply-chain-blocks.html" target="_blank">Supply Chain Blocks</a></li>
+        <li><a href="tools/spend-intensity.html" target="_blank">Spend vs Carbon Intensity</a></li>
+      </ul>
+      <p>Or open the built DIVE app root at <a href="/">/</a>.</p>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

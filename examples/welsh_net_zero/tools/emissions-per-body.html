@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emissions per Reporting Body</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    #chart { width: 100%; height: 100%; position: relative; }
+    .title   { font-size: 20px; font-weight: 600; fill: #111827; }
+    .subtitle{ font-size: 15px; fill: #6b7280; font-family: Arial, sans-serif; }
+    .axis text { fill: #6b7280; font-size: 13px; }
+    .axis path, .axis line { stroke: #d1d5db; }
+    .grid line { stroke: #e5e7eb; stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+    .line-path { fill: none; stroke: #F4633A; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(244,99,58,0.45)); }
+    .area-path { fill: url(#area-gradient); }
+    .dot { fill: #F4633A; stroke: #fff; stroke-width: 2; }
+    .value-label { font-size: 14px; font-weight: 700; fill: #F4633A; text-anchor: middle; font-family: Arial, sans-serif; }
+    .annotation-line { stroke: #515254; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .annotation-text { font-size: 13px; fill: #515254; font-family: Arial, sans-serif; }
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(17,24,39,0.92); color: #f9fafb;
+      border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 1.5;
+      opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 8;
+    }
+    .pen-icon { font-size: 22px; }
+    #context-panel {
+      position: absolute; top: 0; right: 0;
+      width: 44%; height: 100%;
+      background: rgba(255,255,255,0.97);
+      box-shadow: -4px 0 28px rgba(0,0,0,0.13);
+      transform: translateX(105%);
+      transition: transform 300ms cubic-bezier(.4,0,.2,1);
+      z-index: 20; overflow: hidden;
+      border-left: 1px solid #e5e7eb;
+    }
+    #context-panel.open { transform: translateX(0); }
+    #panel-close {
+      position: absolute; top: 12px; right: 14px;
+      background: none; border: none; cursor: pointer;
+      font-size: 17px; color: #9ca3af; line-height: 1;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    #panel-close:hover { background: #f3f4f6; color: #374151; }
+    #panel-title {
+      position: absolute; top: 14px; left: 16px;
+      font-size: 14px; font-weight: 600; color: #111827;
+      font-family: Arial, sans-serif;
+    }
+    #panel-chart { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="context-panel">
+    <button id="panel-close" onclick="hidePanel()" title="Close">&times;</button>
+    <div id="panel-title"></div>
+    <div id="panel-chart"></div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const tooltip = d3.select('#tooltip');
+    const margin = { top: 88, right: 48, bottom: 56, left: 80 };
+    let svg, xScale, yScale, lineG, areaG, dotsG, labelsG, penG, annotG;
+    let chartData = null;
+    let revealYear = 2020;
+    let currentTimelineTimeMs = 0;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+    let selectedYear = null;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        initialize(data);
+        if (lastNarrativeState) applyState(lastNarrativeState, lastNarrativeTimeMs);
+        else { revealYear = 2025; render(false); }
+      } catch(e) {
+        console.error('Emissions-per-body bootstrap failed', e);
+        root.append('div').style('position','absolute').style('inset','0')
+          .style('display','grid').style('place-items','center')
+          .style('font-size','14px').style('color','#374151').text('Unable to load data.');
+      }
+    }
+
+    function setupChart() {
+      root.selectAll('svg').remove();
+      const W = root.node().clientWidth || 960;
+      const H = root.node().clientHeight || 540;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+      const data = chartData.emissionsPerBody;
+
+      svg = root.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+
+      // Gradient for area fill
+      const defs = svg.append('defs');
+      const grad = defs.append('linearGradient').attr('id','area-gradient')
+        .attr('gradientUnits','userSpaceOnUse').attr('x1',0).attr('y1',margin.top).attr('x2',0).attr('y2',margin.top+iH);
+      grad.append('stop').attr('offset','0%').attr('stop-color','#F4633A').attr('stop-opacity',0.18);
+      grad.append('stop').attr('offset','100%').attr('stop-color','#F4633A').attr('stop-opacity',0.01);
+
+      const years = data.map(d => d.year);
+      xScale = d3.scalePoint().domain(years).range([0, iW]).padding(0.3);
+      yScale = d3.scaleLinear().domain([0, 75]).range([iH, 0]).nice();
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      // Grid
+      g.append('g').attr('class','grid')
+        .call(d3.axisLeft(yScale).ticks(6).tickSize(-iW).tickFormat(() => ''));
+
+      // Axes
+      g.append('g').attr('class','axis').attr('transform',`translate(0,${iH})`)
+        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+      g.append('g').attr('class','axis')
+        .call(d3.axisLeft(yScale).ticks(6).tickFormat(d => d3.format(',.1f')(d)));
+
+      // Chart area groups (order matters for layering)
+      areaG    = g.append('g');
+      lineG    = g.append('g');
+      annotG   = g.append('g');
+      dotsG    = g.append('g');
+      labelsG  = g.append('g');
+
+      // Pen icon (in SVG coords, outside translated g)
+      penG = svg.append('g');
+      penG.append('text').attr('class','pen-icon').attr('text-anchor','middle')
+        .attr('dominant-baseline','auto').attr('opacity',0).text('\u270f\ufe0f');
+
+      // Axis labels
+      svg.append('text').attr('class','subtitle').attr('text-anchor','middle')
+        .attr('x', margin.left).attr('y', margin.top - 8)
+        .text('ktCO\u2082e per body');
+      svg.append('text').attr('class','title').attr('x', margin.left).attr('y', 30)
+        .text('Welsh public sector: emissions per reporting body, 2020\u20132025');
+      svg.append('text').attr('class','subtitle').attr('x', margin.left).attr('y', 48)
+        .text('Total emissions divided by number of reporting bodies each year.');
+
+      // Hover layer
+      svg.append('rect').attr('x', margin.left).attr('y', margin.top)
+        .attr('width', iW).attr('height', iH).attr('fill','transparent')
+        .style('cursor', 'pointer')
+        .on('mousemove', handleHover)
+        .on('mouseleave', () => tooltip.style('opacity', 0))
+        .on('click', handleClick);
+    }
+
+    function render(animate) {
+      if (!chartData || !svg) return;
+      const data = chartData.emissionsPerBody;
+      const iH = (root.node().clientHeight || 540) - margin.top - margin.bottom;
+      const progress = clamp((revealYear - 2020) / 5, 0, 1);
+
+      // Build visible data (interpolate the tip point)
+      const lastWholeYear = Math.floor(revealYear);
+      const frac = revealYear - lastWholeYear;
+      const visibleData = data.filter(d => d.year <= lastWholeYear);
+      if (frac > 0 && lastWholeYear < 2025) {
+        const prev = data.find(d => d.year === lastWholeYear);
+        const next = data.find(d => d.year === lastWholeYear + 1);
+        if (prev && next) visibleData.push({
+          year: revealYear,
+          perBody: prev.perBody + (next.perBody - prev.perBody) * frac
+        });
+      }
+
+      const lineGen = d3.line()
+        .x(d => xScale(d.year) || xScale(lastWholeYear) + (xScale(lastWholeYear+1)||xScale(lastWholeYear)+50 - xScale(lastWholeYear)) * frac)
+        .y(d => yScale(d.perBody))
+        .curve(d3.curveMonotoneX);
+
+      // For fractional points, compute x manually
+      function xOf(d) {
+        if (Number.isInteger(d.year)) return xScale(d.year);
+        const y0 = Math.floor(d.year), y1 = y0 + 1, f = d.year - y0;
+        const x0 = xScale(y0), x1 = xScale(y1);
+        return x0 + (x1 - x0) * f;
+      }
+      const lineGen2 = d3.line().x(d => xOf(d)).y(d => yScale(d.perBody)).curve(d3.curveMonotoneX);
+      const areaGen  = d3.area().x(d => xOf(d)).y0(iH).y1(d => yScale(d.perBody)).curve(d3.curveMonotoneX);
+
+      // Area
+      areaG.selectAll('path.area-path').data([visibleData]).join('path')
+        .attr('class','area-path').attr('d', areaGen);
+
+      // Line (full path, revealed by dashoffset)
+      const fullPath = lineG.selectAll('path.line-full').data([data]).join('path')
+        .attr('class','line-path line-full').attr('d', lineGen2.x(d => xOf({year: d.year, perBody: d.perBody})));
+      const totalLen = fullPath.node().getTotalLength();
+      fullPath.attr('stroke-dasharray', totalLen).attr('stroke-dashoffset', (1 - progress) * totalLen);
+
+      // Pen icon
+      const penIcon = penG.select('text.pen-icon');
+      if (progress > 0.01 && progress < 0.99 && visibleData.length > 0) {
+        const tip = visibleData[visibleData.length - 1];
+        penIcon.attr('x', margin.left + xOf(tip) + 2).attr('y', margin.top + yScale(tip.perBody) - 8).attr('opacity', 1);
+      } else {
+        penIcon.attr('opacity', 0);
+      }
+
+      // Dots and labels cleared — pen-only animation
+      dotsG.selectAll('circle.dot').data([]).join('circle');
+      labelsG.selectAll('text.value-label').data([]).join('text');
+
+      // Annotation: average line at 2021 peak
+      annotG.selectAll('*').remove();
+      if (revealYear >= 2021 && revealYear >= 2025) {
+        const avgY = yScale(48.5);
+        annotG.append('line').attr('class','annotation-line')
+          .attr('x1', 0).attr('x2', xScale.range()[1])
+          .attr('y1', avgY).attr('y2', avgY);
+        annotG.append('text').attr('class','annotation-text')
+          .attr('x', xScale.range()[1] - 6).attr('y', avgY - 6)
+          .attr('text-anchor', 'end')
+          .text('avg \u224848.5 ktCO\u2082e per body');
+        annotG.append('text').attr('class','annotation-text')
+          .attr('x', xScale.range()[1] / 2).attr('y', iH - 15)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '16px')
+          .text('There are more reporting bodies now, so emissions per reporting body has actually decreased.');
+      }
+    }
+
+    function handleHover(event) {
+      if (!chartData) return;
+      const [mx] = d3.pointer(event, svg.node());
+      const data = chartData.emissionsPerBody;
+      const relX = mx - margin.left;
+      let best = null, bestDist = Infinity;
+      for (const d of data) {
+        const dx = Math.abs((xScale(d.year) || 0) - relX);
+        if (dx < bestDist) { bestDist = dx; best = d; }
+      }
+      if (!best || revealYear < best.year) { tooltip.style('opacity', 0); return; }
+      tooltip.style('opacity', 1)
+        .style('left', (event.offsetX + 14) + 'px')
+        .style('top', Math.max(8, event.offsetY - 52) + 'px')
+        .html('<strong>' + best.year + '</strong><br/>Per body: ' + d3.format('.1f')(best.perBody) + ' ktCO\u2082e<br/>Bodies: ' + best.bodies + '<br/>Total: ' + d3.format(',.0f')(best.totalEmissions) + ' ktCO\u2082e<br/><em style="opacity:0.6;font-size:11px">Click for breakdown</em>');
+    }
+
+    function handleClick(event) {
+      if (!chartData) return;
+      const [mx] = d3.pointer(event, svg.node());
+      const data = chartData.emissionsPerBody;
+      const relX = mx - margin.left;
+      let best = null, bestDist = Infinity;
+      for (const d of data) {
+        const dx = Math.abs((xScale(d.year) || 0) - relX);
+        if (dx < bestDist) { bestDist = dx; best = d; }
+      }
+      if (!best || revealYear < best.year) return;
+      if (selectedYear === best.year) { hidePanel(); }
+      else { showPanel(best.year); }
+    }
+
+    function showPanel(year) {
+      selectedYear = year;
+      document.getElementById('panel-title').textContent = year + ' \u2014 emissions \u00f7 reporting bodies';
+      document.getElementById('context-panel').classList.add('open');
+      renderPanel(year);
+    }
+
+    function hidePanel() {
+      selectedYear = null;
+      document.getElementById('context-panel').classList.remove('open');
+    }
+
+    function renderPanel(year) {
+      const panelChartEl = document.getElementById('panel-chart');
+      d3.select(panelChartEl).selectAll('*').remove();
+      const data = chartData.emissionsPerBody;
+      const W = panelChartEl.clientWidth || 420;
+      const H = panelChartEl.clientHeight || 500;
+      const pm = { top: 58, right: 54, bottom: 62, left: 62 };
+      const iW = W - pm.left - pm.right;
+      const iH = H - pm.top - pm.bottom;
+      const svgP = d3.select(panelChartEl).append('svg').attr('width', W).attr('height', H);
+      const g = svgP.append('g').attr('transform', `translate(${pm.left},${pm.top})`);
+      const years = data.map(d => d.year);
+      const xS = d3.scaleBand().domain(years).range([0, iW]).padding(0.3);
+      const maxEm = d3.max(data, d => d.totalEmissions);
+      const yL = d3.scaleLinear().domain([0, maxEm * 1.1]).range([iH, 0]);
+      const yR = d3.scaleLinear().domain([40, 90]).range([iH, 0]);
+      g.append('g').attr('class','grid')
+        .call(d3.axisLeft(yL).ticks(5).tickSize(-iW).tickFormat(() => ''));
+      g.append('g').attr('class','axis').attr('transform',`translate(0,${iH})`)
+        .call(d3.axisBottom(xS).tickFormat(d3.format('d')));
+      g.append('g').attr('class','axis')
+        .call(d3.axisLeft(yL).ticks(5).tickFormat(d3.format(',.0f')));
+      const rAxis = g.append('g').attr('class','axis').attr('transform',`translate(${iW},0)`)
+        .call(d3.axisRight(yR).ticks(5));
+      rAxis.selectAll('text').style('fill','#ea580c');
+      rAxis.selectAll('path, line').style('stroke','#fca5a5');
+      // Bars
+      g.selectAll('rect.pbar').data(data).join('rect').attr('class','pbar')
+        .attr('x', d => xS(d.year)).attr('width', xS.bandwidth())
+        .attr('y', d => yL(d.totalEmissions))
+        .attr('height', d => iH - yL(d.totalEmissions))
+        .attr('fill', d => d.year === year ? '#6b7280' : '#d1d5db').attr('rx', 2);
+      // Bodies line
+      const bLineGen = d3.line()
+        .x(d => xS(d.year) + xS.bandwidth() / 2)
+        .y(d => yR(d.bodies)).curve(d3.curveMonotoneX);
+      g.append('path').datum(data)
+        .attr('fill','none').attr('stroke','#ea580c').attr('stroke-width', 2.5)
+        .attr('d', bLineGen);
+      g.selectAll('circle.pbdot').data(data).join('circle').attr('class','pbdot')
+        .attr('cx', d => xS(d.year) + xS.bandwidth() / 2).attr('cy', d => yR(d.bodies))
+        .attr('r', d => d.year === year ? 6 : 3.5)
+        .attr('fill','#ea580c').attr('stroke','#fff').attr('stroke-width', 2);
+      const sel = data.find(d => d.year === year);
+      if (sel) {
+        g.append('text').attr('x', xS(year) + xS.bandwidth() / 2)
+          .attr('y', yL(sel.totalEmissions) - 6)
+          .attr('text-anchor','middle').attr('font-size','11px')
+          .attr('font-weight','700').attr('fill','#374151')
+          .text(d3.format(',.0f')(sel.totalEmissions));
+        svgP.append('text').attr('x', pm.left + iW / 2).attr('y', H - 10)
+          .attr('text-anchor','middle').attr('font-size','12px').attr('fill','#374151')
+          .text(d3.format(',.0f')(sel.totalEmissions) + ' ktCO\u2082e \u00f7 ' + sel.bodies + ' bodies = ' + d3.format('.1f')(sel.perBody) + ' ktCO\u2082e/body');
+      }
+      svgP.append('text').attr('font-size','11px').attr('fill','#6b7280')
+        .attr('text-anchor','middle').attr('x', pm.left).attr('y', pm.top - 10)
+        .text('Total ktCO\u2082e');
+      svgP.append('text').attr('font-size','11px').attr('fill','#ea580c').attr('font-weight','600')
+        .attr('text-anchor','middle').attr('x', pm.left + iW).attr('y', pm.top - 10)
+        .text('Reporting bodies');
+    }
+
+    function applyState(state, timeMs) {
+      if (!chartData) return;
+      if (typeof timeMs === 'number' && isFinite(timeMs)) currentTimelineTimeMs = timeMs;
+      if (state.streamTime) {
+        const segStart = Number(state.segmentStartTimeMs);
+        const segEnd   = Number(state.segmentEndTimeMs);
+        if (segEnd > segStart) {
+          const progress = clamp((currentTimelineTimeMs - segStart) / (segEnd - segStart), 0, 1);
+          revealYear = 2020 + 5 * progress;
+        }
+      } else {
+        revealYear = clamp(Number(state.revealYear != null ? state.revealYear : 2020), 2020, 2025);
+      }
+      render(true);
+    }
+
+    function initialize(data) {
+      if (!data || !data.emissionsPerBody) return;
+      chartData = data;
+      setupChart();
+      render(false);
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hidePanel(); });
+    window.addEventListener('resize', () => { if (!chartData) return; setupChart(); render(false); });
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = (typeof p.time === 'number' && isFinite(p.time)) ? p.time : currentTimelineTimeMs;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+    window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>

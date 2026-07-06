@@ -1,0 +1,531 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emissions Trend</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --fg: #111827;
+      --axis: #6b7280;
+      --grid: #e5e7eb;
+      --annotation: #F4633A;
+    }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      color: var(--fg);
+      font-family: Arial, "Segoe UI", sans-serif;
+    }
+
+    #chart { width: 100%; height: 100%; position: relative; }
+
+    .legend {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 18px;
+    }
+    .legend-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #515254; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex: 0 0 12px; }
+
+    .title { font-size: 20px; font-weight: 600; fill: #111827; font-family: Arial, sans-serif; }
+    .subtitle { font-size: 15px; fill: #6b7280; font-family: Arial, sans-serif; }
+
+    .axis text, .axis path, .axis line {
+      fill: var(--axis); stroke: var(--axis); font-size: 13px;
+    }
+
+    .grid line { stroke: var(--grid); stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+
+    .line { fill: none; stroke-width: 2.5; filter: drop-shadow(0 0 5px rgba(255,255,255,0.18)); }
+
+    .legend text { fill: var(--fg); font-size: 12px; }
+
+    .annotation line { stroke: var(--annotation); stroke-width: 2; stroke-dasharray: 6 5; }
+    .annotation text { fill: var(--annotation); font-size: 11px; font-weight: 600; }
+
+    .tooltip {
+      position: absolute; pointer-events: none;
+      background: rgba(17,24,39,0.92); color: #f9fafb;
+      border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 1.5;
+      opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 8;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="legend" class="legend"></div>
+
+  <script>
+    const chartRoot = d3.select('#chart');
+    const tooltip   = d3.select('#tooltip');
+    const legendEl  = d3.select('#legend');
+
+    let chartData = null;
+    let currentState = {
+      maxYear: 2021,
+      minYear: 2020,
+      fixedDomainEndYear: 2025,
+      showAnnotation: false,
+      annotationYear: 2024,
+      segmentStartTimeMs: 0,
+      segmentEndTimeMs: 10000,
+    };
+    let currentDisplayYear = 2020;
+    let currentTimelineTimeMs = 0;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+
+    let svg, x, y, xAxisGroup, yAxisGroup, gridGroup, barsG, labelsG, pinnedG, annotationGroup;
+    let pinnedYear = null, pinnedSourceId = null, lastStackedData = null;
+
+    const margin = { top: 95, right: 30, bottom: 60, left: 72 };
+    const AXIS_START_YEAR = 2020;
+    const AXIS_END_YEAR   = 2025;
+    const ALL_YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+    const STANDALONE_FULL_VIEW_STATE = {
+      minYear: AXIS_START_YEAR, maxYear: AXIS_END_YEAR,
+      segmentStartTimeMs: 0, segmentEndTimeMs: 0, showAnnotation: false,
+    };
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const pendingState = lastNarrativeState;
+        const pendingMs    = lastNarrativeTimeMs;
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        if (pendingState) {
+          initialize(data);
+          applyState(pendingState, pendingMs);
+        } else {
+          currentState = { ...currentState, ...STANDALONE_FULL_VIEW_STATE };
+          initialize(data);
+        }
+      } catch(e) {
+        console.error('Emissions Trend bootstrap failed', e);
+        chartRoot.append('div').style('position','absolute').style('inset','0')
+          .style('display','grid').style('place-items','center')
+          .style('font-size','14px').style('color','var(--fg)').text('Unable to load data.');
+      }
+    }
+
+    // Build a year-keyed stacked dataset from emissionsTrend
+    function buildStackData() {
+      const sources = chartData.emissionsTrend;
+      return ALL_YEARS.map(year => {
+        const obj = { year };
+        for (const s of sources) {
+          const v = s.values.find(d => d.year === year);
+          obj[s.sourceId] = v ? v.ktco2e : 0;
+        }
+        return obj;
+      });
+    }
+
+    function setupChart() {
+      chartRoot.selectAll('svg').remove();
+      const W = chartRoot.node().clientWidth || 960;
+      const H = chartRoot.node().clientHeight || 540;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+
+      svg = chartRoot.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+
+      x = d3.scaleBand().domain(ALL_YEARS).range([0, iW]).padding(0.22);
+      y = d3.scaleLinear().domain([0, 1]).range([iH, 0]);
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      gridGroup = g.append('g').attr('class', 'grid')
+        .call(d3.axisLeft(y).ticks(5).tickSize(-iW).tickFormat(() => ''));
+
+      xAxisGroup = g.append('g').attr('class', 'axis').attr('transform', `translate(0,${iH})`)
+        .call(d3.axisBottom(x).tickFormat(d3.format('d')));
+      yAxisGroup = g.append('g').attr('class', 'axis')
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(',.0f')));
+
+      // Style axes for dark theme
+      svg.selectAll('.axis text').attr('fill','var(--axis)');
+      svg.selectAll('.axis path, .axis line').attr('stroke','var(--axis)');
+      svg.selectAll('.grid line').attr('stroke','var(--grid)');
+
+      barsG        = g.append('g');
+      pinnedG      = g.append('g').attr('class', 'pinned-indicator');
+      labelsG      = g.append('g').attr('class', 'bar-labels');
+      annotationGroup = g.append('g').attr('class','annotation').style('opacity',0);
+
+      svg.append('text').attr('class','title')
+        .attr('x', margin.left).attr('y', 30)
+        .text('Welsh Public Sector Emissions by Source, 2020\u20132025');
+      svg.append('text').attr('class','subtitle')
+        .attr('x', margin.left).attr('y', 50)
+        .text('Total emissions by source (ktCO\u2082e)');
+      svg.append('text').attr('class','subtitle')
+        .attr('x', margin.left).attr('y', 70)
+        .attr('font-size', '13px').attr('fill', '#9ca3af')
+        .text('Hover over a bar to see the trend of each sector.');
+      svg.append('text').attr('class','subtitle').attr('text-anchor','start')
+        .attr('x', margin.left).attr('y', margin.top - 8)
+        .text('ktCO\u2082e');
+
+      drawLegend();
+
+      // Hover layer
+      g.append('rect').attr('width', iW).attr('height', iH).attr('fill','transparent')
+        .style('cursor', 'pointer')
+        .on('mousemove', handleHover)
+        .on('click', handleClick)
+        .on('mouseleave', () => {
+          if (pinnedYear || pinnedSourceId) return;
+          tooltip.style('opacity', 0);
+          barsG.selectAll('g.layer').style('opacity', null);
+          barsG.selectAll('rect').style('opacity', null);
+          labelsG.selectAll('text').style('opacity', null);
+        });
+    }
+
+    function drawLegend() {
+      if (!chartData) return;
+      legendEl.selectAll('*').remove();
+      for (const s of [...chartData.emissionsTrend].reverse()) {
+        const row = legendEl.append('div').attr('class','legend-row');
+        row.append('span').attr('class','legend-swatch').style('background', s.color);
+        row.append('span').text(s.sourceName);
+      }
+    }
+
+    function renderBars() {
+      if (!chartData || !svg) return;
+      const iH = (chartRoot.node().clientHeight || 540) - margin.top - margin.bottom;
+      const iW = (chartRoot.node().clientWidth  || 960)  - margin.left - margin.right;
+      const sources   = chartData.emissionsTrend;
+      const sourceIds = sources.map(s => s.sourceId);
+      const colorMap  = Object.fromEntries(sources.map(s => [s.sourceId, s.color]));
+
+      const maxYear = Math.floor(currentDisplayYear);
+      const visibleYears = ALL_YEARS.filter(yr => yr <= maxYear);
+      const stackData = buildStackData().filter(d => d.year <= maxYear);
+
+      const stacked = d3.stack().keys(sourceIds)(stackData);
+      lastStackedData = stacked;
+
+      // Update y domain to actual ktCO₂e values
+      const maxTotal = d3.max(stackData, d => sourceIds.reduce((sum, k) => sum + (d[k] || 0), 0)) || 1;
+      y.domain([0, maxTotal * 1.05]);
+      yAxisGroup.call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(',.0f')));
+      gridGroup.call(d3.axisLeft(y).ticks(5).tickSize(-iW).tickFormat(() => ''));
+      svg.selectAll('.axis text').attr('fill', 'var(--axis)');
+      svg.selectAll('.axis path, .axis line').attr('stroke', 'var(--axis)');
+      svg.selectAll('.grid line').attr('stroke', 'var(--grid)');
+
+      // One group per source layer
+      const layers = barsG.selectAll('g.layer').data(stacked, d => d.key)
+        .join('g').attr('class','layer')
+        .attr('fill', d => colorMap[d.key]);
+
+      layers.selectAll('rect').data(d => d, d => d.data.year)
+        .join(
+          enter => enter.append('rect')
+            .attr('x', d => x(d.data.year)).attr('width', x.bandwidth())
+            .attr('y', iH).attr('height', 0)
+            .call(s => s.transition().duration(600).ease(d3.easeCubicOut)
+              .attr('y', d => y(d[1])).attr('height', d => y(d[0]) - y(d[1]))),
+          update => update.filter(function() { return !d3.active(this); })
+            .attr('x', d => x(d.data.year)).attr('width', x.bandwidth())
+            .attr('y', d => y(d[1])).attr('height', d => y(d[0]) - y(d[1]))
+        );
+
+      layers.style('opacity', pinnedSourceId ? d => d.key === pinnedSourceId ? 1 : 0.25 : null);
+
+      // Total labels above each bar
+      const totals = stackData.map(d => ({
+        year: d.year,
+        total: sourceIds.reduce((sum, k) => sum + (d[k] || 0), 0)
+      }));
+      labelsG.selectAll('text').data(totals, d => d.year)
+        .join(
+          enter => enter.append('text')
+            .attr('x', d => x(d.year) + x.bandwidth() / 2)
+            .attr('y', d => y(d.total) - 5)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px').attr('font-weight', '600').attr('fill', '#374151')
+            .text(d => d3.format(',.0f')(d.total))
+            .style('opacity', 0)
+            .call(s => s.transition().delay(450).duration(250).style('opacity', 1)),
+          update => update.filter(function() { return !d3.active(this); })
+            .attr('y', d => y(d.total) - 5)
+            .text(d => d3.format(',.0f')(d.total))
+        );
+
+      // Pinned year outline indicator
+      pinnedG.selectAll('rect').remove();
+      if (pinnedYear && pinnedYear <= maxYear) {
+        pinnedG.append('rect')
+          .attr('x', x(pinnedYear) - 2).attr('y', -4)
+          .attr('width', x.bandwidth() + 4).attr('height', iH + 8)
+          .attr('fill', 'none').attr('stroke', '#374151')
+          .attr('stroke-width', 1.5).attr('rx', 3).attr('stroke-dasharray', '4 3');
+        barsG.selectAll('rect').style('opacity', d => d.data.year === pinnedYear ? 1 : 0.4);
+        labelsG.selectAll('text').style('opacity', d => d.year === pinnedYear ? 1 : 0.4);
+      }
+
+      // Annotation: supply chain % share at annotationYear
+      annotationGroup.selectAll('*').remove();
+      const annYear = Number(currentState.annotationYear || 2024);
+      if (currentState.showAnnotation && annYear <= maxYear) {
+        const yearRow = stackData.find(d => d.year === annYear);
+        const scPct = yearRow ? Math.round(100 * yearRow.supply_chain /
+          sources.reduce((s, src) => s + (yearRow[src.sourceId] || 0), 0)) : 0;
+        const ax = x(annYear) + x.bandwidth() / 2;
+        annotationGroup.append('line')
+          .attr('x1', ax).attr('x2', ax).attr('y1', iH).attr('y2', 4);
+        annotationGroup.append('text')
+          .attr('x', ax + 6).attr('y', 14)
+          .attr('fill','var(--annotation)').attr('font-size','12px').attr('font-weight','600')
+          .text(scPct + '% supply chain — emission factor update 2024');
+        annotationGroup.style('opacity', 1);
+      } else {
+        annotationGroup.style('opacity', 0);
+      }
+    }
+
+    function showYearDetail(year, offsetX, offsetY) {
+      const sources = chartData.emissionsTrend;
+      const total = sources.reduce((sum, s) => {
+        const v = s.values.find(d => d.year === year);
+        return sum + (v ? v.ktco2e : 0);
+      }, 0);
+      const rows = sources.map(s => {
+        const v = s.values.find(d => d.year === year);
+        const kt = v ? v.ktco2e : 0;
+        const pct = total > 0 ? Math.round(100 * kt / total) : 0;
+        return `<span style="color:${s.color}">\u25A0</span> ${s.sourceName}: ${pct}% (${d3.format(',.0f')(kt)} ktCO\u2082e)`;
+      }).join('<br/>');
+      barsG.selectAll('rect').style('opacity', d => d.data.year === year ? 1 : 0.4);
+      labelsG.selectAll('text').style('opacity', d => d.year === year ? 1 : 0.4);
+      const pinHint = pinnedYear === year
+        ? '<br/><em style="opacity:0.55;font-size:11px">Click to unpin</em>'
+        : '<br/><em style="opacity:0.55;font-size:11px">Click to pin</em>';
+      tooltip
+        .style('background', 'rgba(17,24,39,0.92)')
+        .style('color', '#f9fafb')
+        .style('opacity', 1)
+        .style('left', (offsetX + 14) + 'px')
+        .style('top', Math.max(8, offsetY - 80) + 'px')
+        .html('<strong>' + year + '</strong> \u2014 ' + d3.format(',.0f')(total) + ' ktCO\u2082e total<br/>' + rows + pinHint);
+    }
+
+    function handleHover(event) {
+      if (!chartData || pinnedYear || pinnedSourceId) return;
+      const [mx, my] = d3.pointer(event);
+      let best = null, bestDist = Infinity;
+      for (const yr of ALL_YEARS) {
+        const cx = x(yr) + x.bandwidth() / 2;
+        const d = Math.abs(cx - mx);
+        if (d < bestDist) { bestDist = d; best = yr; }
+      }
+      if (!best || best > Math.floor(currentDisplayYear)) {
+        tooltip.style('opacity', 0);
+        barsG.selectAll('g.layer').style('opacity', null);
+        barsG.selectAll('rect').style('opacity', null);
+        labelsG.selectAll('text').style('opacity', null);
+        return;
+      }
+      // Detect which source segment the cursor is over
+      let hoveredSourceId = null;
+      if (lastStackedData) {
+        for (const layer of lastStackedData) {
+          const datum = layer.find(d => d.data.year === best);
+          if (datum && my >= y(datum[1]) && my <= y(datum[0])) {
+            hoveredSourceId = layer.key; break;
+          }
+        }
+      }
+      if (hoveredSourceId) {
+        barsG.selectAll('g.layer').style('opacity', d => d.key === hoveredSourceId ? 1 : 0.25);
+        barsG.selectAll('rect').style('opacity', null);
+        showSourceTrend(hoveredSourceId, best, event.offsetX, event.offsetY);
+      } else {
+        barsG.selectAll('g.layer').style('opacity', null);
+        showYearDetail(best, event.offsetX, event.offsetY);
+      }
+    }
+
+    function handleClick(event) {
+      if (!chartData) return;
+      const [mx, my] = d3.pointer(event);
+      // Find nearest year column
+      let clicked = null, bestDist = Infinity;
+      for (const yr of ALL_YEARS) {
+        const cx = x(yr) + x.bandwidth() / 2;
+        const d = Math.abs(cx - mx);
+        if (d < bestDist) { bestDist = d; clicked = yr; }
+      }
+      if (!clicked || clicked > Math.floor(currentDisplayYear)) return;
+
+      // Detect which source segment was clicked by y position
+      let clickedSourceId = null;
+      if (lastStackedData) {
+        for (const layer of lastStackedData) {
+          const datum = layer.find(d => d.data.year === clicked);
+          if (datum) {
+            const yTop = y(datum[1]), yBot = y(datum[0]);
+            if (my >= yTop && my <= yBot) { clickedSourceId = layer.key; break; }
+          }
+        }
+      }
+
+      if (clickedSourceId) {
+        // Toggle source pin — shows line chart
+        if (pinnedSourceId === clickedSourceId) {
+          pinnedSourceId = null;
+          tooltip.style('opacity', 0);
+          renderBars();
+        } else {
+          pinnedSourceId = clickedSourceId;
+          pinnedYear = null;
+          renderBars();
+          showSourceTrend(clickedSourceId, clicked, event.offsetX, event.offsetY);
+        }
+      } else {
+        // Toggle year pin — shows breakdown
+        if (pinnedYear === clicked) {
+          pinnedYear = null;
+          tooltip.style('opacity', 0);
+          barsG.selectAll('rect').style('opacity', null);
+          labelsG.selectAll('text').style('opacity', null);
+          renderBars();
+        } else {
+          pinnedYear = clicked;
+          pinnedSourceId = null;
+          renderBars();
+          showYearDetail(clicked, event.offsetX, event.offsetY);
+        }
+      }
+    }
+
+    function showSourceTrend(sourceId, year, offsetX, offsetY) {
+      const source = chartData.emissionsTrend.find(s => s.sourceId === sourceId);
+      if (!source) return;
+      const sources = chartData.emissionsTrend;
+
+      // Year breakdown (selected source bolded)
+      const total = sources.reduce((sum, s) => {
+        const v = s.values.find(d => d.year === year);
+        return sum + (v ? v.ktco2e : 0);
+      }, 0);
+      const rows = sources.map(s => {
+        const v = s.values.find(d => d.year === year);
+        const kt = v ? v.ktco2e : 0;
+        const pct = total > 0 ? Math.round(100 * kt / total) : 0;
+        const sel = s.sourceId === sourceId;
+        return `<span style="color:${s.color}">■</span> ${sel ? '<strong>' : ''}${s.sourceName}: ${pct}% (${d3.format(',.0f')(kt)} ktCO₂e)${sel ? '</strong>' : ''}`;
+      }).join('<br/>');
+
+      // Line chart SVG
+      const W = 240, H = 120, m = { top: 18, right: 15, bottom: 28, left: 50 };
+      const iW = W - m.left - m.right, iH = H - m.top - m.bottom;
+      const xScale = d3.scalePoint().domain(source.values.map(d => d.year)).range([0, iW]).padding(0.3);
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(source.values, d => d.ktco2e) * 1.15]).range([iH, 0]);
+      const lineGen = d3.line().x(d => xScale(d.year)).y(d => yScale(d.ktco2e));
+      const container = document.createElement('div');
+      const svgEl = d3.select(container).append('svg')
+        .attr('width', W).attr('height', H).style('display', 'block');
+      svgEl.append('style').text(
+        '.ma text{fill:#374151;font-size:10px;font-family:Arial,sans-serif}' +
+        '.ma path,.ma line{stroke:#9ca3af}'
+      );
+      const g = svgEl.append('g').attr('transform', `translate(${m.left},${m.top})`);
+      g.append('g').attr('class','ma').attr('transform',`translate(0,${iH})`)
+        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+      g.append('g').attr('class','ma')
+        .call(d3.axisLeft(yScale).ticks(3).tickFormat(d3.format(',.0f')));
+      g.append('path').datum(source.values)
+        .attr('fill', source.color).attr('fill-opacity', 0.15)
+        .attr('d', d3.area().x(d => xScale(d.year)).y0(iH).y1(d => yScale(d.ktco2e)));
+      g.append('path').datum(source.values)
+        .attr('fill','none').attr('stroke', source.color).attr('stroke-width', 2)
+        .attr('d', lineGen);
+      g.selectAll('circle').data(source.values).join('circle')
+        .attr('cx', d => xScale(d.year)).attr('cy', d => yScale(d.ktco2e))
+        .attr('r', 3.5).attr('fill', source.color);
+
+      tooltip
+        .style('background', 'rgba(255,255,255,0.97)')
+        .style('color', '#111827')
+        .style('opacity', 1)
+        .style('left', (offsetX + 14) + 'px')
+        .style('top', Math.max(8, offsetY - 80) + 'px')
+        .html(
+          '<strong>' + year + '</strong> — ' + d3.format(',.0f')(total) + ' ktCO₂e total<br/>' +
+          rows + '<br/><br/>' +
+          `<strong style="color:${source.color}">■ ${source.sourceName}</strong> — trend (ktCO₂e)<br/>` +
+          container.innerHTML +
+          '<br/><em style="opacity:0.6;font-size:11px;color:#6b7280">Click same segment to pin/unpin</em>'
+        );
+    }
+    function resolveDisplayYear(timeMs) {
+      const minYear = clamp(Number(currentState.minYear || AXIS_START_YEAR), AXIS_START_YEAR, AXIS_END_YEAR);
+      const maxYear = clamp(Number(currentState.maxYear || minYear), minYear, AXIS_END_YEAR);
+      const segStart = Number(currentState.segmentStartTimeMs);
+      const segEnd   = Number(currentState.segmentEndTimeMs);
+      if (currentState.streamTime && Number.isFinite(timeMs) && segEnd > segStart) {
+        const progress = clamp((timeMs - segStart) / (segEnd - segStart), 0, 1);
+        return minYear + (maxYear - minYear) * progress;
+      }
+      return maxYear;
+    }
+
+    function applyState(nextState, timeMs) {
+      if (!chartData) return;
+      currentState = { ...currentState, ...nextState };
+      if (Number.isFinite(timeMs)) currentTimelineTimeMs = Number(timeMs);
+      currentState.maxYear = clamp(Number(currentState.maxYear || 2021), AXIS_START_YEAR, AXIS_END_YEAR);
+      currentState.minYear = clamp(Number(currentState.minYear || AXIS_START_YEAR), AXIS_START_YEAR, currentState.maxYear);
+      currentDisplayYear = resolveDisplayYear(currentTimelineTimeMs);
+      renderBars();
+    }
+
+    function initialize(data) {
+      if (!data || !Array.isArray(data.emissionsTrend)) return;
+      chartData = data;
+      setupChart();
+      applyState(currentState, 0);
+    }
+
+    window.addEventListener('resize', () => { if (!chartData) return; setupChart(); renderBars(); });
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = Number.isFinite(p.time) ? Number(p.time) : currentTimelineTimeMs;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+    window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>
