@@ -181,7 +181,7 @@
         .text('Total emissions by source (ktCO\u2082e)');
       svg.append('text').attr('class','subtitle')
         .attr('x', margin.left).attr('y', 70)
-        .attr('font-size', '13px').attr('fill', '#9ca3af')
+        .attr('font-size', '13px').attr('fill', 'var(--annotation)')
         .text('Hover over a bar to see the trend of each sector.');
       svg.append('text').attr('class','subtitle').attr('text-anchor','start')
         .attr('x', margin.left).attr('y', margin.top - 8)
@@ -288,24 +288,9 @@
         labelsG.selectAll('text').style('opacity', d => d.year === pinnedYear ? 1 : 0.4);
       }
 
-      // Annotation: supply chain % share at annotationYear
+      // Annotation removed
       annotationGroup.selectAll('*').remove();
-      const annYear = Number(currentState.annotationYear || 2024);
-      if (currentState.showAnnotation && annYear <= maxYear) {
-        const yearRow = stackData.find(d => d.year === annYear);
-        const scPct = yearRow ? Math.round(100 * yearRow.supply_chain /
-          sources.reduce((s, src) => s + (yearRow[src.sourceId] || 0), 0)) : 0;
-        const ax = x(annYear) + x.bandwidth() / 2;
-        annotationGroup.append('line')
-          .attr('x1', ax).attr('x2', ax).attr('y1', iH).attr('y2', 4);
-        annotationGroup.append('text')
-          .attr('x', ax + 6).attr('y', 14)
-          .attr('fill','var(--annotation)').attr('font-size','12px').attr('font-weight','600')
-          .text(scPct + '% supply chain — emission factor update 2024');
-        annotationGroup.style('opacity', 1);
-      } else {
-        annotationGroup.style('opacity', 0);
-      }
+      annotationGroup.style('opacity', 0);
     }
 
     function showYearDetail(year, offsetX, offsetY) {

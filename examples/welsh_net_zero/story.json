@@ -1,6 +1,6 @@
 {
   "title": "Welsh Public Sector Net Zero 2025",
-  "duration": 120000,
+  "duration": 135000,
   "timelineSections": [
     {
       "id": "headline-intro",
@@ -12,140 +12,175 @@
     {
       "id": "headline-facts",
       "startTime": 3000,
-      "endTime": 20000,
+      "endTime": 16000,
       "label": "Key Facts",
       "color": "rgba(234, 88, 12, 0.38)"
     },
     {
       "id": "headline-explore",
-      "startTime": 20000,
-      "endTime": 25000,
+      "startTime": 16000,
+      "endTime": 20000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
+      "id": "transition-bodies",
+      "startTime": 20000,
+      "endTime": 24000,
+      "label": "Narrative",
+      "color": "rgba(244, 99, 58, 0.22)"
+    },
+    {
       "id": "epb-intro",
-      "startTime": 25000,
-      "endTime": 27000,
+      "startTime": 24000,
+      "endTime": 26000,
       "label": "Per Body",
       "color": "rgba(234, 88, 12, 0.22)"
     },
     {
       "id": "epb-draw",
-      "startTime": 27000,
-      "endTime": 35000,
+      "startTime": 26000,
+      "endTime": 34000,
       "label": "Pen Draws",
       "color": "rgba(234, 88, 12, 0.38)"
     },
     {
       "id": "epb-explore",
-      "startTime": 35000,
-      "endTime": 42000,
+      "startTime": 34000,
+      "endTime": 41000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
-      "id": "donut-sectors",
-      "startTime": 42000,
+      "id": "transition-epb-donut",
+      "startTime": 41000,
       "endTime": 45000,
+      "label": "Narrative",
+      "color": "rgba(244, 99, 58, 0.22)"
+    },
+    {
+      "id": "donut-sectors",
+      "startTime": 45000,
+      "endTime": 48000,
       "label": "Sectors",
       "color": "rgba(244, 99, 58, 0.22)"
     },
     {
       "id": "donut-highlight",
-      "startTime": 45000,
-      "endTime": 48000,
+      "startTime": 48000,
+      "endTime": 51000,
       "label": "LA + NHS",
       "color": "rgba(244, 99, 58, 0.38)"
     },
     {
       "id": "donut-explore",
-      "startTime": 48000,
-      "endTime": 54000,
+      "startTime": 51000,
+      "endTime": 57000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
       "id": "sectors-2020",
-      "startTime": 54000,
-      "endTime": 60000,
+      "startTime": 57000,
+      "endTime": 63000,
       "label": "Sectors 2020",
       "color": "rgba(78, 154, 241, 0.35)"
     },
     {
       "id": "sector-grow",
-      "startTime": 60000,
-      "endTime": 68000,
+      "startTime": 63000,
+      "endTime": 71000,
       "label": "Growth Years",
       "color": "rgba(167, 139, 250, 0.35)"
     },
     {
       "id": "sector-hold",
-      "startTime": 68000,
-      "endTime": 70000,
+      "startTime": 71000,
+      "endTime": 73000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
+      "id": "transition-sc-blocks",
+      "startTime": 73000,
+      "endTime": 77000,
+      "label": "Narrative",
+      "color": "rgba(234, 88, 12, 0.22)"
+    },
+    {
       "id": "blocks-build",
-      "startTime": 70000,
-      "endTime": 78000,
+      "startTime": 77000,
+      "endTime": 85000,
       "label": "75% Builds",
       "color": "rgba(234, 88, 12, 0.38)"
     },
     {
       "id": "call-action",
-      "startTime": 78000,
-      "endTime": 82000,
+      "startTime": 85000,
+      "endTime": 89000,
       "label": "Call to Action",
       "color": "rgba(52, 211, 153, 0.3)"
     },
     {
       "id": "sc-explore",
-      "startTime": 82000,
-      "endTime": 84000,
+      "startTime": 89000,
+      "endTime": 91000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
+      "id": "transition-sc-trend",
+      "startTime": 91000,
+      "endTime": 95000,
+      "label": "Narrative",
+      "color": "rgba(234, 88, 12, 0.22)"
+    },
+    {
       "id": "sources-rise",
-      "startTime": 84000,
-      "endTime": 100000,
+      "startTime": 95000,
+      "endTime": 111000,
       "label": "Sources Rise",
       "color": "rgba(78, 154, 241, 0.35)"
     },
     {
       "id": "sc-dominates",
-      "startTime": 100000,
-      "endTime": 106000,
+      "startTime": 111000,
+      "endTime": 117000,
       "label": "Supply Chain",
       "color": "rgba(231, 76, 60, 0.35)"
     },
     {
       "id": "trend-hold",
-      "startTime": 106000,
-      "endTime": 108000,
+      "startTime": 117000,
+      "endTime": 119000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     },
     {
+      "id": "transition-trend-spend",
+      "startTime": 119000,
+      "endTime": 123000,
+      "label": "Narrative",
+      "color": "rgba(234, 88, 12, 0.22)"
+    },
+    {
       "id": "spend-intro",
-      "startTime": 108000,
-      "endTime": 110000,
+      "startTime": 123000,
+      "endTime": 125000,
       "label": "Spend & Intensity",
       "color": "rgba(244, 99, 58, 0.22)"
     },
     {
       "id": "spend-draw",
-      "startTime": 110000,
-      "endTime": 118000,
+      "startTime": 125000,
+      "endTime": 133000,
       "label": "Pen Draws",
       "color": "rgba(244, 99, 58, 0.38)"
     },
     {
       "id": "spend-explore",
-      "startTime": 118000,
-      "endTime": 120000,
+      "startTime": 133000,
+      "endTime": 135000,
       "label": "Explore",
       "color": "rgba(107, 114, 128, 0.22)"
     }
@@ -155,7 +190,7 @@
       "id": "phase-0-headline-facts",
       "tool": "tools/headline-facts.html",
       "startTime": 0,
-      "endTime": 25000,
+      "endTime": 20000,
       "sendData": true,
       "keyframes": [
         {
@@ -171,19 +206,19 @@
           }
         },
         {
-          "time": 9000,
+          "time": 8000,
           "state": {
             "revealFacts": 2
           }
         },
         {
-          "time": 15000,
+          "time": 13000,
           "state": {
             "revealFacts": 3
           }
         },
         {
-          "time": 20000,
+          "time": 16000,
           "state": {
             "revealFacts": 3,
             "pauseOnInteract": true
@@ -193,10 +228,24 @@
       "overlays": []
     },
     {
+      "id": "phase-transition-bodies",
+      "tool": "tools/transition-text.html",
+      "startTime": 20000,
+      "endTime": 24000,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
       "id": "phase-1b-emissions-per-body",
       "tool": "tools/emissions-per-body.html",
-      "startTime": 25000,
-      "endTime": 42000,
+      "startTime": 24000,
+      "endTime": 41000,
       "sendData": true,
       "keyframes": [
         {
@@ -210,8 +259,8 @@
           "state": {
             "revealYear": 2025,
             "streamTime": true,
-            "segmentStartTimeMs": 27000,
-            "segmentEndTimeMs": 35000
+            "segmentStartTimeMs": 26000,
+            "segmentEndTimeMs": 34000
           }
         },
         {
@@ -231,10 +280,24 @@
       "overlays": []
     },
     {
+      "id": "phase-transition-epb-donut",
+      "tool": "tools/transition-epb-donut.html",
+      "startTime": 41000,
+      "endTime": 45000,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
       "id": "phase-2-sector-donut",
       "tool": "tools/sector-donut.html",
-      "startTime": 42000,
-      "endTime": 54000,
+      "startTime": 45000,
+      "endTime": 57000,
       "sendData": true,
       "keyframes": [
         {
@@ -268,8 +331,8 @@
     {
       "id": "phase-3-sector-bubbles",
       "tool": "tools/sector-bubbles.html",
-      "startTime": 54000,
-      "endTime": 70000,
+      "startTime": 57000,
+      "endTime": 73000,
       "sendData": true,
       "keyframes": [
         {
@@ -290,8 +353,8 @@
             "fromYear": 2020,
             "toYear": 2025,
             "streamTime": true,
-            "segmentStartTimeMs": 60000,
-            "segmentEndTimeMs": 68000,
+            "segmentStartTimeMs": 63000,
+            "segmentEndTimeMs": 71000,
             "focusSectors": [
               "nhs_wales",
               "local_auth"
@@ -316,10 +379,24 @@
       "overlays": []
     },
     {
+      "id": "phase-transition-sc-blocks",
+      "tool": "tools/transition-sc-blocks.html",
+      "startTime": 73000,
+      "endTime": 77000,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
       "id": "phase-4-supply-chain-blocks",
       "tool": "tools/supply-chain-blocks.html",
-      "startTime": 70000,
-      "endTime": 84000,
+      "startTime": 77000,
+      "endTime": 91000,
       "sendData": true,
       "keyframes": [
         {
@@ -371,10 +448,24 @@
       "overlays": []
     },
     {
+      "id": "phase-transition-sc-trend",
+      "tool": "tools/transition-sc-trend.html",
+      "startTime": 91000,
+      "endTime": 95000,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
       "id": "phase-5-emissions-trend",
       "tool": "tools/emissions-trend.html",
-      "startTime": 84000,
-      "endTime": 108000,
+      "startTime": 95000,
+      "endTime": 119000,
       "sendData": true,
       "keyframes": [
         {
@@ -386,8 +477,8 @@
             "showAnnotation": false,
             "annotationYear": 2024,
             "streamTime": true,
-            "segmentStartTimeMs": 84000,
-            "segmentEndTimeMs": 92000
+            "segmentStartTimeMs": 95000,
+            "segmentEndTimeMs": 103000
           }
         },
         {
@@ -399,8 +490,8 @@
             "showAnnotation": true,
             "annotationYear": 2024,
             "streamTime": true,
-            "segmentStartTimeMs": 92000,
-            "segmentEndTimeMs": 100000
+            "segmentStartTimeMs": 103000,
+            "segmentEndTimeMs": 111000
           }
         },
         {
@@ -427,10 +518,24 @@
       "overlays": []
     },
     {
+      "id": "phase-transition-trend-spend",
+      "tool": "tools/transition-trend-spend.html",
+      "startTime": 119000,
+      "endTime": 123000,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
       "id": "phase-6-spend-intensity",
       "tool": "tools/spend-intensity.html",
-      "startTime": 108000,
-      "endTime": 120000,
+      "startTime": 123000,
+      "endTime": 135000,
       "sendData": true,
       "keyframes": [
         {
@@ -444,8 +549,8 @@
           "state": {
             "revealYear": 2025,
             "streamTime": true,
-            "segmentStartTimeMs": 110000,
-            "segmentEndTimeMs": 118000
+            "segmentStartTimeMs": 125000,
+            "segmentEndTimeMs": 133000
           }
         },
         {

@@ -40,11 +40,34 @@
       opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
       box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 8;
     }
+    #final-overlay {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      padding: 28px 10%;
+      background: linear-gradient(to top, rgba(249,250,251,0.97) 55%, transparent);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease 0.4s;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #final-overlay.visible { opacity: 1; }
+    .final-text {
+      font-size: clamp(1.1rem, 2.2vw, 1.8rem);
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.4;
+    }
+    .final-down { color: #22c55e; }
+    .final-up   { color: #F4633A; }
   </style>
 </head>
 <body>
   <div id="chart"></div>
   <div id="tooltip" class="tooltip"></div>
+  <div id="final-overlay">
+    <p class="final-text">Carbon intensity has <span class="final-down">decreased 27%</span> since 2020 — but has been <span class="final-up">rising again</span> since 2023</p>
+  </div>
   <div class="legend">
     <div class="legend-row"><span class="legend-swatch-bar"></span>Spend (&#163;bn)</div>
     <div class="legend-row"><span class="legend-swatch-line"></span>Carbon intensity (kgCO₂e/£)</div>
@@ -227,6 +250,9 @@
           .attr('x', xScale(2025) + xScale.bandwidth() / 2 - 4).attr('text-anchor','end')
           .attr('y', endY - 10).text('\u221227% carbon per \u00a3 (2020\u21922025)');
       }
+      // Final overlay — appears once line is fully drawn
+      const overlay = document.getElementById('final-overlay');
+      if (overlay) overlay.classList.toggle('visible', progress >= 0.99);
     }
 
     function showTip(event, d) {

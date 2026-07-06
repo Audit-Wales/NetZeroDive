@@ -77,13 +77,17 @@
     .pct-label.visible { opacity: 1; }
 
     .click-hint {
-      font-size: clamp(0.85rem, 1.3vw, 1rem); color: #9ca3af;
-      text-align: center;
+      background: #ea580c; color: #fff; border: none; border-radius: 999px;
+      padding: 10px 22px;
+      font-size: clamp(12px, 1.3vw, 14px); font-weight: 600;
+      font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.35);
       opacity: 0; transform: translateY(6px);
-      transition: opacity 0.5s ease 1.6s, transform 0.5s ease 1.6s;
+      transition: opacity 0.5s ease 1.6s, transform 0.5s ease 1.6s, background 0.15s;
     }
     .click-hint.visible { opacity: 1; transform: translateY(0); }
-    .click-hint span { font-style: italic; }
+    .click-hint:hover { background: #c2440f; }
 
     .content-row {
       display: flex; flex-direction: row; align-items: center;
@@ -185,8 +189,7 @@
           </div>
         </div>
         <div class="grid-right">
-          <div class="block-label grey-label" id="label-bottom">All other sources</div>
-          <p class="click-hint" id="click-hint"><span>Click any block to see the supply chain trend →</span></p>
+          <button class="click-hint" id="click-hint">Click to see supply chain trend →</button>
         </div>
       </div>
     </div>
@@ -402,11 +405,11 @@
     });
     document.getElementById('b4').addEventListener('mouseleave', () => { blockTooltip.style.opacity = '0'; });
 
-    // ── Block click handler ──────────────────────────────────────
-    document.querySelectorAll('.block').forEach(b => b.addEventListener('click', () => {
+    // ── Button click handler ──────────────────────────────
+    document.getElementById('click-hint').addEventListener('click', () => {
       openTrendPanel();
       window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'supply-chain-blocks' }, '*');
-    }));
+    });
 
     // ── Data bootstrap ───────────────────────────────────────────
     async function bootstrapStandalone() {

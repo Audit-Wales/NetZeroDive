@@ -209,23 +209,6 @@
     }
     #coverage-modal-close:hover { background: rgba(17,24,39,0.85); }
 
-    /* ── Background watermark ── */
-    #watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -54%);
-      font-size: clamp(180px, 35vw, 340px);
-      font-weight: 900;
-      color: #F4633A;
-      opacity: 0.06;
-      line-height: 1;
-      pointer-events: none;
-      user-select: none;
-      transition: opacity 0.8s ease;
-    }
-    #watermark.visible { opacity: 0.08; }
-
     /* ── Reporting bodies pill ── */
     #bodies-pill {
       position: absolute;
@@ -253,12 +236,9 @@
     <!-- Reporting bodies badge -->
     <div id="bodies-pill" class="reveal">82 reporting bodies</div>
 
-    <!-- Arrow decoration -->
-    <div id="watermark">↑</div>
-
-    <!-- Explore coverage button -->
+<!-- Explore coverage button -->
     <button id="explore-btn" aria-label="Explore coverage growth chart">
-      Explore Coverage <span aria-hidden="true">→</span>
+      Click to see emission trends over time <span aria-hidden="true">→</span>
     </button>
 
     <!-- Title -->
@@ -309,7 +289,6 @@
     const fact2El   = document.getElementById('fact-2');
     const pct1El    = document.getElementById('pct1');
     const pct2El    = document.getElementById('pct2');
-    const arrowEl   = document.getElementById('watermark');
     const pillEl    = document.getElementById('bodies-pill');
     const exploreBtn    = document.getElementById('explore-btn');
     const coverageModal = document.getElementById('coverage-modal');
@@ -369,7 +348,6 @@
       if (phase >= 1 && prev < 1) {
         titleEl.classList.add('visible');
         numRow.classList.add('visible');
-        arrowEl.classList.add('visible');
         pillEl.classList.add('visible');
         cancelRafs.forEach(fn => fn()); cancelRafs = [];
         const s = performance.now(); let r;
@@ -385,7 +363,7 @@
       }
       if (phase < 1) {
         titleEl.classList.remove('visible'); numRow.classList.remove('visible');
-        arrowEl.classList.remove('visible'); pillEl.classList.remove('visible');
+        pillEl.classList.remove('visible');
         cancelRafs.forEach(fn => fn()); cancelRafs = [];
         counterEl.textContent = '0';
       }
