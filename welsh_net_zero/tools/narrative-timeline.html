@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Context &amp; timeline</title>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    body {
+      display: flex; align-items: stretch;
+      animation: pageFadeOut 0.8s ease 12.2s forwards;
+    }
+
+    #text-panel {
+      flex: 0 0 50%;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 1.4em;
+      padding: 6% 4% 6% 6%;
+      box-sizing: border-box;
+    }
+    .line {
+      margin: 0;
+      font-size: clamp(1.05rem, 2.1vw, 1.5rem);
+      line-height: 1.5;
+      color: #374151;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .line .quote { color: #F4633A; font-weight: 700; }
+    #line1 { animation-delay: 0.3s; }
+    #line2 { animation-delay: 3.0s; }
+    #line3 { animation-delay: 6.4s; }
+
+    #timeline-panel {
+      flex: 0 0 50%;
+      position: relative;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 34px;
+      padding: 6% 6% 6% 4%;
+      box-sizing: border-box;
+      border-left: 1px solid #e5e7eb;
+    }
+    .track {
+      position: absolute;
+      left: calc(6% + 27px);
+      top: 8%;
+      bottom: 8%;
+      width: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .track::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: #F4633A;
+      transform: scaleY(0);
+      transform-origin: top;
+      animation: growTrack 8.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+    }
+    .node {
+      display: flex; align-items: center; gap: 18px;
+      position: relative; z-index: 1;
+      opacity: 0;
+      transform: translateX(16px);
+      animation: fadeIn 0.5s ease forwards;
+      cursor: pointer;
+    }
+    .node.n1 { animation-delay: 0.3s; }
+    .node.n2 { animation-delay: 2.8s; }
+    .node.n3 { animation-delay: 5.6s; }
+    .node.n4 { animation-delay: 8.2s; }
+
+    .dot {
+      flex: none;
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #cbd5e1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+      position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .node:hover .dot {
+      transform: scale(1.12);
+      border-color: #F4633A;
+    }
+    .node.current .dot {
+      width: 62px; height: 62px; font-size: 28px;
+      border-color: #F4633A;
+      color: #F4633A;
+      box-shadow: 0 0 0 6px rgba(244,99,58,0.15), 0 4px 14px rgba(244,99,58,0.3);
+      animation: pulseDot 1.8s ease-in-out 6.1s infinite;
+    }
+    .node.current:hover .dot { transform: scale(1.08); }
+    .node.target .dot {
+      border-style: dashed;
+      border-color: #F4633A;
+      background: #fff6f3;
+    }
+    .label .year {
+      display: block;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #111827;
+    }
+    .label .desc {
+      display: block;
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .node.current .label .year { color: #F4633A; }
+    .node.target .label .year { color: #F4633A; }
+
+    .tooltip {
+      position: absolute;
+      top: 100%; left: 72px;
+      margin-top: 8px;
+      background: #111827; color: #f9fafb;
+      font-size: 12px; line-height: 1.4;
+      padding: 6px 10px; border-radius: 6px;
+      white-space: nowrap;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      opacity: 0; transform: translateY(-4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .node:hover .tooltip { opacity: 1; transform: translateY(0); }
+
+    .info-hint {
+      position: absolute;
+      top: 5%; left: 4%;
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 600; color: #6b7280;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 1.0s forwards;
+    }
+    .info-badge {
+      flex: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #eef2f7; color: #6b7280;
+      border: 1px solid #d1d5db;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; font-style: italic;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes growTrack {
+      to { transform: scaleY(1); }
+    }
+    @keyframes pulseDot {
+      0%, 100% { box-shadow: 0 0 0 6px rgba(244,99,58,0.15), 0 4px 14px rgba(244,99,58,0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(244,99,58,0), 0 4px 14px rgba(244,99,58,0.3); }
+    }
+    @keyframes pageFadeOut {
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="text-panel">
+    <p class="line" id="line1"><strong>2021</strong> &mdash; an ambition was set: net zero by 2030.</p>
+    <p class="line" id="line2"><strong>2022</strong> &mdash; we found <span class="quote">&lsquo;clear uncertainty&rsquo;</span> it would be met.</p>
+    <p class="line" id="line3"><strong>Now</strong> &mdash; it is highly unlikely that the public sector will achieve the collective ambition.</p>
+  </div>
+
+  <div id="timeline-panel">
+    <div class="info-hint"><span class="info-badge">i</span>Hover the icons for detail</div>
+    <div class="track"></div>
+    <div class="node n1">
+      <div class="dot">&#128681;</div>
+      <div class="label"><span class="year">2021</span><span class="desc">Ambition set</span></div>
+      <div class="tooltip">Net zero by 2030 announced</div>
+    </div>
+    <div class="node n2">
+      <div class="dot">&#128203;</div>
+      <div class="label"><span class="year">2022</span><span class="desc">Previous report</span></div>
+      <div class="tooltip">Flagged as uncertain early on</div>
+    </div>
+    <div class="node n3 current">
+      <div class="dot">&#9888;</div>
+      <div class="label"><span class="year">2026</span><span class="desc">This review</span></div>
+      <div class="tooltip">Still unlikely to be met</div>
+    </div>
+    <div class="node n4 target">
+      <div class="dot">&#127937;</div>
+      <div class="label"><span class="year">2030</span><span class="desc">Net Zero Ambition</span></div>
+      <div class="tooltip">Target year for net zero</div>
+    </div>
+  </div>
+</body>
+</html>

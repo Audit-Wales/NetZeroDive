@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What we heard</title>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    #stage {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 22px;
+      padding: 5% 8%;
+      box-sizing: border-box;
+    }
+    .kicker {
+      font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      text-align: center;
+      margin-bottom: 6px;
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.1s forwards;
+    }
+    .bubble-row {
+      display: flex;
+      opacity: 0;
+      transform: translateY(14px) scale(0.96);
+      animation: bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    .bubble-row.left  { justify-content: flex-start; }
+    .bubble-row.right { justify-content: flex-end; }
+    .bubble-row:nth-child(2) { animation-delay: 0.4s; }
+    .bubble-row:nth-child(3) { animation-delay: 3.1s; }
+    .bubble-row:nth-child(4) { animation-delay: 5.8s; }
+    .bubble-row:nth-child(5) { animation-delay: 8.5s; }
+
+    .bubble {
+      max-width: 62%;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 18px 24px;
+      box-shadow: 0 10px 28px rgba(17,24,39,0.10);
+      position: relative;
+    }
+    .bubble-row.left .bubble {
+      border: 1px solid #e5e7eb;
+      border-top-left-radius: 4px;
+    }
+    .bubble-row.right .bubble {
+      background: #fff6f3;
+      border: 1px solid rgba(244,99,58,0.28);
+      border-top-right-radius: 4px;
+    }
+    .bubble p {
+      margin: 0;
+      font-style: italic;
+      font-size: clamp(0.95rem, 1.7vw, 1.15rem);
+      line-height: 1.5;
+      color: #374151;
+    }
+    .bubble .mark {
+      color: #F4633A;
+      font-style: normal;
+      font-weight: 800;
+      font-size: 1.25em;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    @keyframes bubbleIn {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div class="kicker">In their words</div>
+    <div class="bubble-row left">
+      <div class="bubble">
+        <p><span class="mark">&ldquo;</span>Decarbonisation is a discretionary priority.<span class="mark">&rdquo;</span></p>
+      </div>
+    </div>
+    <div class="bubble-row right">
+      <div class="bubble">
+        <p><span class="mark">&ldquo;</span>Finance is just the overwhelming problem for everyone at the moment.<span class="mark">&rdquo;</span></p>
+      </div>
+    </div>
+    <div class="bubble-row left">
+      <div class="bubble">
+        <p><span class="mark">&ldquo;</span>There&rsquo;s definitely a better understanding of the scale of the challenge&hellip;but&hellip;there&rsquo;s a little bit of reticence around what it&rsquo;s going to take.<span class="mark">&rdquo;</span></p>
+      </div>
+    </div>
+    <div class="bubble-row right">
+      <div class="bubble">
+        <p><span class="mark">&ldquo;</span>(Net zero has) become this kind of political hot potato.<span class="mark">&rdquo;</span></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

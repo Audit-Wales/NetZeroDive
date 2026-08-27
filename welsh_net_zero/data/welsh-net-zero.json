@@ -658,12 +658,6 @@
   ],
   "emissionsPerBody": [
     {
-      "year": 2020,
-      "bodies": 47,
-      "totalEmissions": 2234,
-      "perBody": 47.5
-    },
-    {
       "year": 2021,
       "bodies": 54,
       "totalEmissions": 3326,

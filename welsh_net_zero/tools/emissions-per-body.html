@@ -74,7 +74,7 @@
     const margin = { top: 88, right: 48, bottom: 56, left: 80 };
     let svg, xScale, yScale, lineG, areaG, dotsG, labelsG, penG, annotG;
     let chartData = null;
-    let revealYear = 2020;
+    let revealYear = 2021;
     let currentTimelineTimeMs = 0;
     let lastNarrativeState = null;
     let lastNarrativeTimeMs = 0;
@@ -159,7 +159,7 @@
         .attr('x', margin.left).attr('y', margin.top - 8)
         .text('ktCO\u2082e per body');
       svg.append('text').attr('class','title').attr('x', margin.left).attr('y', 30)
-        .text('Welsh public sector: emissions per reporting body, 2020\u20132025');
+        .text('Welsh public sector: emissions per reporting body, 2021\u20132025');
       svg.append('text').attr('class','subtitle').attr('x', margin.left).attr('y', 48)
         .text('Total emissions divided by number of reporting bodies each year.');
 
@@ -176,7 +176,7 @@
       if (!chartData || !svg) return;
       const data = chartData.emissionsPerBody;
       const iH = (root.node().clientHeight || 540) - margin.top - margin.bottom;
-      const progress = clamp((revealYear - 2020) / 5, 0, 1);
+      const progress = clamp((revealYear - 2021) / 4, 0, 1);
 
       // Build visible data (interpolate the tip point)
       const lastWholeYear = Math.floor(revealYear);
@@ -357,10 +357,10 @@
         const segEnd   = Number(state.segmentEndTimeMs);
         if (segEnd > segStart) {
           const progress = clamp((currentTimelineTimeMs - segStart) / (segEnd - segStart), 0, 1);
-          revealYear = 2020 + 5 * progress;
+          revealYear = 2021 + 4 * progress;
         }
       } else {
-        revealYear = clamp(Number(state.revealYear != null ? state.revealYear : 2020), 2020, 2025);
+        revealYear = clamp(Number(state.revealYear != null ? state.revealYear : 2021), 2021, 2025);
       }
       render(true);
     }

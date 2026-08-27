@@ -56,7 +56,7 @@
     const margin = { top: 88, right: 80, bottom: 52, left: 72 };
     let svg, xScale, yLeft, yRight, barsG, segmentsG, dotsG, labelsG, penG;
     let chartData = null;
-    let revealBodyYear = 2020;
+    let revealBodyYear = 2021;
     let currentTimelineTimeMs = 0;
     let lastNarrativeState = null;
     let lastNarrativeTimeMs = 0;
@@ -124,7 +124,7 @@
         .attr('x', W - margin.right).attr('y', margin.top - 8)
         .text('Reporting bodies');
       svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', 30)
-        .text('Welsh public sector total emissions, 2020\u20132025');
+        .text('Welsh public sector total emissions, 2021\u20132025');
       svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', 48)
         .text('Bars show total emissions across all sources. The orange line tracks the number of reporting bodies.');
     }
@@ -167,7 +167,7 @@
         .attr('d', lineGen);
 
       const totalLen = pathSel.node().getTotalLength();
-      const progress = Math.max(0, Math.min(1, (revealBodyYear - 2020) / 5));
+      const progress = Math.max(0, Math.min(1, (revealBodyYear - 2021) / 4));
       // Direct assignment — DIVE calls render() at ~60 fps when streaming,
       // so no D3 transition needed; the rapid calls produce the smooth animation.
       pathSel
@@ -193,10 +193,10 @@
         const segEnd   = Number(state.segmentEndTimeMs);
         if (segEnd > segStart) {
           const progress = clamp((currentTimelineTimeMs - segStart) / (segEnd - segStart), 0, 1);
-          revealBodyYear = 2020 + 5 * progress;
+          revealBodyYear = 2021 + 4 * progress;
         }
       } else {
-        revealBodyYear = clamp(Number(state.revealBodyYear != null ? state.revealBodyYear : 2020), 2020, 2025);
+        revealBodyYear = clamp(Number(state.revealBodyYear != null ? state.revealBodyYear : 2021), 2021, 2025);
       }
       render(true);
     }

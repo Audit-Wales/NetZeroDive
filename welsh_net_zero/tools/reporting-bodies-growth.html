@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporting bodies growth</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    body { animation: pageFadeOut 0.8s ease 7.2s forwards; }
+    #chart { width: 100%; height: 100%; position: relative; }
+    .title    { font-size: 20px; font-weight: 600; fill: #111827; }
+    .subtitle { font-size: 14px; fill: #6b7280; font-family: Arial, sans-serif; }
+    .axis text { fill: #6b7280; font-size: 13px; }
+    .axis path, .axis line { stroke: #d1d5db; }
+    .grid line { stroke: #e5e7eb; stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+    .line-path { fill: none; stroke: #F4633A; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(244,99,58,0.45)); }
+    .area-path { fill: url(#area-gradient); }
+    .pen-icon { font-size: 22px; }
+
+    .overlay-narrative {
+      position: absolute;
+      left: 50%; bottom: 7%;
+      transform: translate(-50%, 10px);
+      width: min(90%, 620px);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .overlay-narrative.visible { opacity: 1; transform: translate(-50%, 0); }
+    .overlay-text {
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.45;
+      color: #374151;
+      margin: 0 0 8px;
+      text-shadow: 0 0 14px #f9fafb, 0 0 6px #f9fafb;
+    }
+    .overlay-text strong { color: #111827; font-weight: 800; }
+    .delta-inline {
+      display: flex; align-items: baseline; justify-content: center; gap: 8px;
+    }
+    .delta-num {
+      font-size: clamp(2rem, 4.5vw, 2.8rem);
+      font-weight: 800;
+      color: #F4633A;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 14px #f9fafb, 0 0 6px #f9fafb;
+    }
+    .delta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      text-shadow: 0 0 14px #f9fafb, 0 0 6px #f9fafb;
+    }
+    @keyframes pageFadeOut {
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <div class="overlay-narrative" id="overlay-narrative">
+    <p class="overlay-text">Reporting bodies have increased from <strong>69 to 82</strong> between 2021-22 and 2024-25.</p>
+    <div class="delta-inline">
+      <span class="delta-num" id="delta-num">1</span>
+      <span class="delta-label">more bodies</span>
+    </div>
+  </div>
+
+  <script>
+    const root = d3.select('#chart');
+    const margin = { top: 88, right: 48, bottom: 56, left: 64 };
+    let svg, xScale, yScale, lineG, areaG, penG;
+    let chartData = null;
+    let currentTimelineTimeMs = 0;
+    let segmentStartTimeMs = 0;
+    let overlayShown = false;
+    let lastNarrativeState = null;
+    let lastNarrativeTimeMs = 0;
+    let fallbackBootstrapStarted = false;
+    const DRAW_DURATION_MS = 3000;
+    const DELTA_TARGET = 13;
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function fyLabel(year) { return (year - 1) + '-' + String(year).slice(-2); }
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    async function bootstrapStandalone() {
+      if (chartData || fallbackBootstrapStarted) return;
+      fallbackBootstrapStarted = true;
+      try {
+        const res = await fetch(standaloneDataUrl());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        if (chartData) return;
+        initialize(data);
+        if (lastNarrativeState) applyState(lastNarrativeState, lastNarrativeTimeMs);
+        else render(1);
+      } catch (e) {
+        console.error('Reporting-bodies-growth bootstrap failed', e);
+        root.append('div').style('position', 'absolute').style('inset', '0')
+          .style('display', 'grid').style('place-items', 'center')
+          .style('font-size', '14px').style('color', '#374151').text('Unable to load data.');
+      }
+    }
+
+    function setupChart() {
+      root.selectAll('svg').remove();
+      const W = root.node().clientWidth || 960;
+      const H = root.node().clientHeight || 540;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+      const data = chartData.emissionsPerBody;
+
+      svg = root.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+
+      const defs = svg.append('defs');
+      const grad = defs.append('linearGradient').attr('id', 'area-gradient')
+        .attr('gradientUnits', 'userSpaceOnUse').attr('x1', 0).attr('y1', margin.top).attr('x2', 0).attr('y2', margin.top + iH);
+      grad.append('stop').attr('offset', '0%').attr('stop-color', '#F4633A').attr('stop-opacity', 0.18);
+      grad.append('stop').attr('offset', '100%').attr('stop-color', '#F4633A').attr('stop-opacity', 0.01);
+
+      const years = data.map(d => d.year);
+      xScale = d3.scalePoint().domain(years).range([0, iW]).padding(0.3);
+      yScale = d3.scaleLinear().domain([40, 90]).range([iH, 0]);
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      g.append('g').attr('class', 'grid')
+        .call(d3.axisLeft(yScale).ticks(6).tickSize(-iW).tickFormat(() => ''));
+      g.append('g').attr('class', 'axis').attr('transform', `translate(0,${iH})`)
+        .call(d3.axisBottom(xScale).tickFormat(fyLabel));
+      g.append('g').attr('class', 'axis')
+        .call(d3.axisLeft(yScale).ticks(6).tickFormat(d3.format('d')));
+
+      areaG = g.append('g');
+      lineG = g.append('g');
+
+      penG = svg.append('g');
+      penG.append('text').attr('class', 'pen-icon').attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'auto').attr('opacity', 0).text('\u270f\ufe0f');
+
+      svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', margin.top - 30)
+        .text('Number of reporting bodies');
+      svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', margin.top - 10)
+        .text('Welsh public sector, 2020-21 to 2024-25');
+    }
+
+    function render(progress) {
+      if (!chartData || !svg) return;
+      const data = chartData.emissionsPerBody;
+      const lineGen = d3.line().x(d => xScale(d.year)).y(d => yScale(d.bodies)).curve(d3.curveMonotoneX);
+
+      const areaGen = d3.area().x(d => xScale(d.year)).y0(yScale(40)).y1(d => yScale(d.bodies)).curve(d3.curveMonotoneX);
+      areaG.selectAll('path.area-path').data([data]).join('path')
+        .attr('class', 'area-path').attr('d', areaGen);
+
+      const fullPath = lineG.selectAll('path.line-path').data([data]).join('path')
+        .attr('class', 'line-path').attr('d', lineGen);
+      const totalLen = fullPath.node().getTotalLength();
+      fullPath.attr('stroke-dasharray', totalLen).attr('stroke-dashoffset', (1 - progress) * totalLen);
+
+      const penIcon = penG.select('text.pen-icon');
+      if (progress > 0.01 && progress < 0.999) {
+        const point = fullPath.node().getPointAtLength(progress * totalLen);
+        penIcon.attr('x', margin.left + point.x + 2).attr('y', margin.top + point.y - 8).attr('opacity', 1);
+      } else {
+        penIcon.attr('opacity', 0);
+      }
+    }
+
+    function animateNum(el, from, target, duration) {
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(from + (target - from) * ease);
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = target;
+      };
+      requestAnimationFrame(tick);
+    }
+
+    function showOverlay() {
+      if (overlayShown) return;
+      overlayShown = true;
+      document.getElementById('overlay-narrative').classList.add('visible');
+      animateNum(document.getElementById('delta-num'), 1, DELTA_TARGET, 1200);
+    }
+
+    function applyState(state, timeMs) {
+      if (!chartData) return;
+      if (typeof timeMs === 'number' && isFinite(timeMs)) currentTimelineTimeMs = timeMs;
+      if (state.streamTime) {
+        segmentStartTimeMs = Number(state.segmentStartTimeMs) || 0;
+        const elapsed = currentTimelineTimeMs - segmentStartTimeMs;
+        const progress = clamp(elapsed / DRAW_DURATION_MS, 0, 1);
+        render(progress);
+        if (elapsed >= DRAW_DURATION_MS) showOverlay();
+      } else {
+        render(1);
+        showOverlay();
+      }
+    }
+
+    function initialize(data) {
+      if (!data || !data.emissionsPerBody) return;
+      chartData = data;
+      setupChart();
+      render(0);
+    }
+
+    window.addEventListener('resize', () => { if (!chartData) return; setupChart(); render(overlayShown ? 1 : 0); });
+    window.addEventListener('message', event => {
+      const p = event.data;
+      if (!p || !p.type) return;
+      if (p.type === 'DIVE_INIT') { initialize(p.data); }
+      else if (p.type === 'DIVE_STATE') {
+        lastNarrativeState = p.state || {};
+        lastNarrativeTimeMs = (typeof p.time === 'number' && isFinite(p.time)) ? p.time : currentTimelineTimeMs;
+        if (!chartData) { bootstrapStandalone(); return; }
+        applyState(lastNarrativeState, lastNarrativeTimeMs);
+      }
+    });
+    window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);
+  </script>
+</body>
+</html>
