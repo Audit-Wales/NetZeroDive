@@ -25,4 +25,15 @@ export interface IAdapter {
    * Optional: Notify adapters when playback is paused/resumed.
    */
   setPlaybackState?(isPlaying: boolean, timeMs: number): void;
+
+  /**
+   * Optional: locale for tool copy / data. Player also posts DIVE_LANG to iframes.
+   */
+  setLanguage?(lang: string): void;
+  onLanguage?(callback: (lang: string) => void): void;
+
+  /**
+   * Optional: tool finished first paint / data load. Player buffers until this fires.
+   */
+  onReady?(callback: () => void): void;
 }

@@ -1,19 +1,81 @@
 // Interfaces for the D.I.V.E. Story script
 
 export interface Story {
-  title: string;
+  title: LocalizedString;
   duration: number; // total duration in milliseconds
-  aspectRatio?: string; // e.g., "16/9" or "4/3"
+  // "9:16" (default), "16:9", "16/9", or a width/height number.
+  aspectRatio?: string;
+  audio?: StoryAudio;
+  captions?: StoryCaptions;
+  languages?: LanguageOption[];
+  poster?: string;
+  /**
+   * Player chrome. `autohide` overlays the picture and captures the first tap.
+   * `inset` keeps chrome outside the picture so the tool is always clickable.
+   * A scene `uiMode` overrides this.
+   */
+  uiMode?: UiMode;
+  assets?: StoryAsset[];
+  dependencies?: string[];
   scenes: Scene[];
   timelineSections?: TimelineSection[];
 }
+
+export type UiMode = 'autohide' | 'inset';
+
+export type LocalizedString = string | Record<string, string>;
+
+export interface LanguageOption {
+  code: string;
+  label: string;
+  default?: boolean;
+}
+
+export interface StoryAsset {
+  id: string;
+  src: string;
+  lang?: string;
+  role?: AudioRole;
+}
+
+export type AudioRole = 'narration' | 'music' | 'sfx' | 'descriptions';
+
+export interface AudioClip {
+  src: string;
+  startTime?: number; // story time ms when this clip becomes active
+  endTime?: number;
+  offset?: number; // ms into the media file at startTime
+  volume?: number; // 0–1
+  loop?: boolean;
+  lang?: string;
+  role?: AudioRole;
+}
+
+export type StoryAudio = string | AudioClip | AudioClip[];
+
+export interface CaptionCue {
+  startTime: number;
+  endTime: number;
+  text: string;
+}
+
+export interface CaptionTrack {
+  src?: string; // WebVTT URL
+  cues?: CaptionCue[];
+  srclang?: string;
+  label?: string;
+  default?: boolean;
+  kind?: 'subtitles' | 'captions' | 'descriptions';
+}
+
+export type StoryCaptions = string | CaptionCue[] | CaptionTrack | CaptionTrack[];
 
 export interface TimelineSection {
   id?: string;
   startTime: number;
   endTime: number;
-  label: string;
-  description?: string;
+  label: LocalizedString;
+  description?: LocalizedString;
   color?: string;
 }
 
@@ -25,8 +87,10 @@ export interface Scene {
   data?: string | object; // optional URL or inline data to provide to the tool
   sendData?: boolean; // if false, DIVE mounts the tool without sending scene.data
   pauseOnInteract?: boolean; // If true, tool interaction pauses playback for this scene
+  uiMode?: UiMode;
   keyframes: Keyframe[];
   overlays: Overlay[];
+  dependencies?: string[];
 }
 
 export interface Keyframe {
@@ -83,10 +147,11 @@ export type OverlayPlacement = OverlayAnchorPlacement | OverlayAbsolutePlacement
 export interface Overlay {
   time: number; 
   duration: number;
-  type: "text" | "image";
-  content: string; // The HTML or URL
-  placement: OverlayPlacement;
+  type: "text" | "image" | "audio";
+  content: LocalizedString; // text, image URL, audio URL, or per-language map
+  placement?: OverlayPlacement;
   hideWhenPaused?: boolean;
+  volume?: number; // audio overlays only
 }
 
 export interface NarrativeState {

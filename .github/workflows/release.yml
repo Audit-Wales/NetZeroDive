@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -24,28 +25,42 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-          cache: npm
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Show npm version
+        run: npm --version
+
       - name: Build framework bundle
         run: npm run build
 
+      - name: Check library dist
+        run: npm run check:dist
+
       - name: Build example bundle
-        run: npx vite build -c examples/the_wealth_and_health_of_nations/vite.config.example.mjs
+        run: npm run build:example
 
       - name: Package release artifacts
         run: |
           tar -czf dist.tar.gz dist
           tar -czf dist-example.tar.gz dist-example
 
+      - name: Publish to npm
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm publish --access public --provenance --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ""
+
       - name: Publish GitHub release assets
         uses: softprops/action-gh-release@v2
         with:
+          draft: false
           files: |
             dist.tar.gz
             dist-example.tar.gz

@@ -2,6 +2,8 @@
 node_modules/
 dist/
 dist-example/
+dist-pages/
 .env
 dist-ssr/
 Welsh_Public_Sector_Net_Zero_2025_with_Insights (1).xlsx
+*.dive
