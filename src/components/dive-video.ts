@@ -320,6 +320,48 @@ export class DiveVideo extends LitElement {
       background: #111214;
       z-index: 11;
     }
+    .chrome-top-right {
+      display: contents;
+    }
+    :host([ui-mode="inset"]) .chrome-top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lang-toggle {
+      position: absolute;
+      top: 10px;
+      right: 54px;
+      z-index: 11;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.55);
+      transition: opacity 0.25s ease;
+    }
+    :host([ui-mode="inset"]) .lang-toggle {
+      position: relative;
+      top: auto;
+      right: auto;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .lang-toggle button {
+      border: none;
+      cursor: pointer;
+      margin: 0;
+      padding: 8px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .lang-toggle button[aria-current="true"] {
+      background: #F4633A;
+      color: #fff;
+    }
     :host([ui-mode="inset"]) .controls {
       position: relative;
       bottom: auto;
@@ -1386,17 +1428,31 @@ export class DiveVideo extends LitElement {
         <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>
       </button>
 
-      ${hasSettings ? html`
-        <button
-          class="icon-btn corner-btn settings ${chromeHidden ? 'hidden' : ''}"
-          @click=${this.toggleSettings}
-          title="Settings"
-          aria-label="Settings"
-          aria-pressed=${this.settingsOpen}
-        >
-          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.2 7.2 0 0 0-1.63-.94l-.36-2.54A.49.49 0 0 0 13.9 2h-3.8a.49.49 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.49.49 0 0 0-.59.22L2.73 8.47a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.13.23.4.32.64.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54c.05.24.25.41.48.41h3.8c.23 0 .43-.17.48-.41l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96c.23.09.51 0 .64-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
-        </button>
-      ` : ''}
+      <div class="chrome-top-right">
+        ${showLang && languages.length > 1 ? html`
+          <div class="lang-toggle" part="lang-toggle" role="group" aria-label="Language">
+            ${languages.map((item) => html`
+              <button
+                type="button"
+                aria-current=${item.code === this.playerLang}
+                @click=${() => this.setLanguage(item.code)}
+              >${item.code.toUpperCase()}</button>
+            `)}
+          </div>
+        ` : ''}
+
+        ${hasSettings ? html`
+          <button
+            class="icon-btn corner-btn settings ${chromeHidden ? 'hidden' : ''}"
+            @click=${this.toggleSettings}
+            title="Settings"
+            aria-label="Settings"
+            aria-pressed=${this.settingsOpen}
+          >
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.2 7.2 0 0 0-1.63-.94l-.36-2.54A.49.49 0 0 0 13.9 2h-3.8a.49.49 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.49.49 0 0 0-.59.22L2.73 8.47a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.13.23.4.32.64.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54c.05.24.25.41.48.41h3.8c.23 0 .43-.17.48-.41l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96c.23.09.51 0 .64-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+          </button>
+        ` : ''}
+      </div>
       </div>
 
       <div class="controls ${chromeHidden ? 'hidden' : ''}" part="controls">

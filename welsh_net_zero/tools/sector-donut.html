@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sector Donut</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -13,6 +14,7 @@
       color: #1f2937;
       display: flex; align-items: stretch;
     }
+    body { animation: pageFadeOut 0.8s ease 14.2s forwards; }
 
     #donut-panel {
       flex: 0 0 50%; display: flex; align-items: center; justify-content: center;
@@ -34,38 +36,31 @@
     .headline .highlight { color: #F4633A; }
 
     .body-text {
-      font-size: clamp(0.95rem, 1.8vw, 1.35rem); color: #4b5563; line-height: 1.5;
+      font-size: clamp(1.2rem, 2.5vw, 1.85rem); color: #4b5563; line-height: 1.5;
       margin: 0;
       opacity: 0; transform: translateY(16px);
       transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
     }
     .body-text.visible { opacity: 1; transform: translateY(0); }
 
-    .sector-legend {
-      margin-top: 20px;
-      opacity: 0; transition: opacity 0.5s ease;
-    }
-    .sector-legend.visible { opacity: 1; }
-    .sector-table {
-      width: 100%; border-collapse: collapse;
-      font-size: 12px; color: #374151;
-    }
-    .sector-table th {
-      text-align: left; font-weight: 600; color: #6b7280;
-      padding: 3px 8px 4px 0; border-bottom: 1px solid #e5e7eb;
-      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    .sector-table th:nth-child(2), .sector-table th:nth-child(3) { text-align: right; }
-    .sector-table td {
-      padding: 5px 8px 5px 0; border-bottom: 1px solid #f3f4f6;
-    }
-    .sector-table td:nth-child(2) { text-align: right; font-weight: 700; color: #111827; }
-    .sector-table td:nth-child(3) { text-align: right; color: #6b7280; }
-
     .center-label {
       text-anchor: middle; dominant-baseline: middle;
       transition: opacity 0.4s ease;
     }
+    .center-value {
+      opacity: 0; transform: scale(0.5); transform-box: fill-box; transform-origin: center;
+      transition: opacity 0.45s ease, transform 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+    .center-value.revealed { opacity: 1; transform: scale(1); }
+    .center-sub { opacity: 0; transition: opacity 0.4s ease 0.15s; }
+    .center-sub.revealed { opacity: 1; }
+
+    #headline-2-share {
+      display: inline-block;
+      opacity: 0; transform: scale(0.6);
+      transition: opacity 0.5s ease, transform 0.55s cubic-bezier(.34,1.56,.64,1);
+    }
+    #headline-2-share.revealed { opacity: 1; transform: scale(1); }
 
     .tooltip {
       position: absolute; pointer-events: none;
@@ -74,6 +69,8 @@
       opacity: 0; transition: opacity 100ms ease;
       white-space: nowrap; z-index: 8;
     }
+
+    @keyframes pageFadeOut { to { opacity: 0; } }
   </style>
 </head>
 <body>
@@ -83,21 +80,30 @@
   </div>
 
   <div id="text-panel">
-    <p class="headline" id="headline-1">Five sectors report emissions across Welsh public bodies.</p>
+    <p class="headline" id="headline-1" data-i18n="donutHeadline1">Not all emissions are created equal.</p>
     <p class="headline" id="headline-2" style="display:none">
-      <span class="highlight">Local Authorities (45%) and NHS Wales (35%)</span> together account for
-      <span class="highlight">80%</span> of total emissions.
+      <span class="highlight" data-i18n="donutHeadline2Highlight">Scope 3</span>
+      <span data-i18n="donutHeadline2Mid">alone makes up</span>
+      <span class="highlight" id="headline-2-share">84%</span>
+      <span data-i18n="donutHeadline2Suffix">of the total — compared with just 16% for Scopes 1 and 2 combined.</span>
     </p>
-    <p class="body-text" id="body-text" style="display:none">
-      These sectors emit the most because they deliver the most services,
-      manage the largest estates and procure the most goods and services.
+    <p class="body-text" id="body-text" style="display:none" data-i18n="donutBody">
+      Scope 3 emissions are indirect emissions, such as those generated in the production of
+      goods purchased by public bodies. So, public bodies have less direct influence over
+      Scope 3 emissions than Scope 1 and 2.
     </p>
-    <div class="sector-legend" id="sector-legend"></div>
   </div>
 
   <script>
+    window.__diveReadyManual = true;
+
     const tooltip = d3.select('#tooltip');
     const donutSvg = d3.select('#donut-svg');
+
+    function T(key) { return window.diveT ? window.diveT(key) : key; }
+    function scope3Entry() {
+      return chartData?.emissionsByScope2025?.find(s => s.id === 'scope3');
+    }
 
     let chartData = null;
     let currentPhase = 1;
@@ -126,14 +132,15 @@
         initialize(data);
         if (pending) applyState(pending);
         else {
-          // Skip individual arcs — go straight to orange fill from top
-          setTimeout(() => { currentPhase = 2; drawPhase2(true); }, 300);
-          setTimeout(() => { currentPhase = 3; drawPhase3(true); }, 3300);
+          // Skip straight to the reveal — go straight to orange fill from top
+          setTimeout(() => transitionToPhase(2, true), 2000);
+          setTimeout(() => transitionToPhase(3, true), 6000);
           return;
         }
       } catch(e) {
         console.error('Sector Donut bootstrap failed', e);
         document.getElementById('donut-panel').textContent = 'Unable to load data.';
+        window.parent?.postMessage({ type: 'DIVE_READY', source: 'sector-donut' }, '*');
       }
     }
 
@@ -169,29 +176,12 @@
         .attr('font-size', outerR * 0.1).attr('fill', '#6b7280').attr('dy', '1.1em');
     }
 
-    function buildLegend() {
-      const legend = document.getElementById('sector-legend');
-      legend.innerHTML = '';
-      const table = document.createElement('table');
-      table.className = 'sector-table';
-      const thead = table.createTHead();
-      const hr = thead.insertRow();
-      ['Sector', 'Share'].forEach(h => {
-        const th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
-      });
-      const tbody = table.createTBody();
-      for (const s of chartData.sectorShares2025) {
-        const tr = tbody.insertRow();
-        const isOrange = s.id === 'local_auth' || s.id === 'nhs_wales';
-        const style = isOrange ? ` style="color:${ORANGE};font-weight:700"` : '';
-        tr.innerHTML = `<td${style}>${s.name}</td><td${style}>${s.share}%</td>`;
-      }
-      legend.appendChild(table);
-    }
-
+    let counterToken = 0;
     function animateCounter(textEl, from, to, duration, suffix = '') {
+      const token = ++counterToken;
       const start = performance.now();
       function frame(now) {
+        if (token !== counterToken) return; // superseded by a newer render
         const progress = Math.min((now - start) / duration, 1);
         const val = Math.round(from + (to - from) * progress);
         textEl.text(`${val}${suffix}`);
@@ -200,63 +190,88 @@
       requestAnimationFrame(frame);
     }
 
-    function drawPhase1(animate = true) {
-      if (!chartData || !individualGroup) return;
-
-      // No individual coloured arcs — grey background ring only
+    // Each render*ForPhase function fully determines its slice of the DOM from
+    // `phase` alone, so jumping to any phase (forwards or backwards) always
+    // yields a fully-consistent view — no stale state left over from a
+    // previously-rendered phase.
+    function renderRing() {
+      if (!individualGroup) return;
       individualGroup.selectAll('path.sector-arc').remove();
-
-      combinedGroup.selectAll('path.combined-arc, path.combined-other').remove();
       combinedGroup.selectAll('path.bg-ring').data([1]).join('path')
         .attr('class', 'bg-ring').attr('fill', '#f3f4f6')
         .attr('d', combArcGen({startAngle: -Math.PI / 2, endAngle: 3 * Math.PI / 2}));
-
-      centerGroup.select('.center-value').text('82').attr('fill', '#111827');
-      centerGroup.select('.center-sub').text('reporting bodies');
-      document.getElementById('sector-legend').classList.add('visible');
     }
 
-    function drawPhase2(animate = true) {
-      if (!combinedGroup) return;
-
+    function renderCenterForPhase(phase, animate) {
+      const valueEl = centerGroup.select('.center-value');
+      const subEl = centerGroup.select('.center-sub');
+      if (phase < 2) {
+        counterToken++; // invalidate any in-flight counter
+        combinedGroup.selectAll('path.combined-arc').remove();
+        valueEl.classed('revealed', false);
+        subEl.classed('revealed', false);
+        return;
+      }
       const dur = animate ? 2000 : 0;
-      const endAngle = 0.8 * 2 * Math.PI;
-
-      // Remove grey remaining-arc, keep bg-ring
-      combinedGroup.selectAll('path.combined-other').remove();
+      const share = scope3Entry()?.share ?? 0;
+      const endAngle = (share / 100) * 2 * Math.PI;
 
       combinedGroup.selectAll('path.combined-arc').data([{startAngle: -Math.PI/2, endAngle: -Math.PI/2}])
         .join('path').attr('class', 'combined-arc').attr('fill', ORANGE)
+        // Set the resting (fully-revealed) shape synchronously first so the arc is
+        // always visually correct even if the transition below never gets to tick.
+        .attr('d', combArcGen({startAngle: -Math.PI/2, endAngle: -Math.PI/2 + endAngle}))
         .call(sel => sel.transition().duration(dur).ease(d3.easeCubicInOut)
           .attrTween('d', function() {
             const i = d3.interpolate(this.__angle__ || -Math.PI/2, -Math.PI/2 + endAngle);
             return t => { this.__angle__ = i(t); return combArcGen({startAngle: -Math.PI/2, endAngle: i(t)}); };
           }));
 
-      centerGroup.select('.center-sub').text('LA + NHS');
-      if (animate) animateCounter(centerGroup.select('.center-value'), 0, 80, dur * 0.9, '%');
-      else centerGroup.select('.center-value').text('80%');
-      centerGroup.select('.center-value').attr('fill', ORANGE);
-
-      // Show headline 2
-      const h1 = document.getElementById('headline-1');
-      const h2 = document.getElementById('headline-2');
-      h1.classList.remove('visible'); h1.style.display = 'none';
-      h2.style.display = ''; requestAnimationFrame(() => h2.classList.add('visible'));
+      subEl.text(T('donutCenterShareLabel')).attr('fill', '#6b7280').classed('revealed', true);
+      const alreadyRevealed = valueEl.classed('revealed');
+      if (animate && !alreadyRevealed) {
+        counterToken++;
+        animateCounter(valueEl, 0, share, dur * 0.9, '%');
+      } else {
+        counterToken++; // invalidate any in-flight counter, show final value directly
+        valueEl.text(`${share}%`);
+      }
+      valueEl.attr('fill', ORANGE).classed('revealed', true);
     }
 
-    function drawPhase3(animate = true) {
+    function renderHeadlineForPhase(phase) {
+      const h1 = document.getElementById('headline-1');
+      const h2 = document.getElementById('headline-2');
+      const shareSpan = document.getElementById('headline-2-share');
+      if (phase < 2) {
+        h2.classList.remove('visible'); h2.style.display = 'none';
+        shareSpan.classList.remove('revealed');
+        h1.style.display = ''; requestAnimationFrame(() => h1.classList.add('visible'));
+        return;
+      }
+      const share = scope3Entry()?.share ?? 0;
+      shareSpan.textContent = `${share}%`;
+      h1.classList.remove('visible'); h1.style.display = 'none';
+      h2.style.display = ''; requestAnimationFrame(() => h2.classList.add('visible'));
+      setTimeout(() => shareSpan.classList.add('revealed'), 150);
+    }
+
+    function renderBodyForPhase(phase) {
       const bodyText = document.getElementById('body-text');
-      bodyText.style.display = '';
-      requestAnimationFrame(() => bodyText.classList.add('visible'));
-      document.getElementById('sector-legend').classList.add('visible');
+      if (phase >= 3) {
+        bodyText.style.display = '';
+        requestAnimationFrame(() => bodyText.classList.add('visible'));
+      } else {
+        bodyText.classList.remove('visible'); bodyText.style.display = 'none';
+      }
     }
 
     function transitionToPhase(phase, animate = true) {
       currentPhase = phase;
-      if (phase >= 1) drawPhase1(animate && phase === 1);
-      if (phase >= 2) drawPhase2(animate && phase === 2);
-      if (phase >= 3) drawPhase3(animate && phase === 3);
+      renderRing();
+      renderCenterForPhase(phase, animate);
+      renderHeadlineForPhase(phase);
+      renderBodyForPhase(phase);
     }
 
     function applyState(state) {
@@ -266,17 +281,22 @@
     }
 
     function initialize(data) {
-      if (!data?.sectorShares2025) return;
+      if (!data?.emissionsByScope2025) return;
       chartData = data;
       setupDonut();
-      buildLegend();
       // Show headline-1 (will switch to headline-2 when phase 2 starts)
       const h1 = document.getElementById('headline-1');
       h1.style.display = '';
       requestAnimationFrame(() => h1.classList.add('visible'));
-      // Don't draw individual arcs on init — phase 2 will draw what's needed
+      // Draw the initial grey ring + total-emissions center label immediately
+      transitionToPhase(1, false);
+      window.parent?.postMessage({ type: 'DIVE_READY', source: 'sector-donut' }, '*');
     }
 
+    window.addEventListener('dive-lang', () => {
+      if (!chartData) return;
+      if (currentPhase >= 2) centerGroup.select('.center-sub').text(T('donutCenterShareLabel'));
+    });
     window.addEventListener('resize', () => { if (!chartData) return; setupDonut(); transitionToPhase(currentPhase, false); });
 
     window.addEventListener('message', event => {

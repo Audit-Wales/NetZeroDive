@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Key message</title>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -81,8 +82,8 @@
 </head>
 <body>
   <div id="stage">
-    <div class="kicker">Audit Wales</div>
-    <div class="headline">Decarbonisation has become a <span class="hl">lower priority<span class="hl-tip">Competing pressures are squeezing it out</span></span> for public bodies</div>
+    <div class="kicker" data-i18n="priorityKicker">Audit Wales</div>
+    <div class="headline"><span data-i18n="priorityPre">Decarbonisation has become a</span> <span class="hl"><span data-i18n="priorityHighlight">lower priority</span><span class="hl-tip" data-i18n="priorityTip">Competing pressures are squeezing it out</span></span> <span data-i18n="prioritySuffix">for public bodies</span></div>
     <div class="bar"></div>
   </div>
 </body>

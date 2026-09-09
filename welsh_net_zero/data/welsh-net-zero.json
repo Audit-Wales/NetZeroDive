@@ -656,6 +656,59 @@
       "color": "#a78bfa"
     }
   ],
+  "emissionsBySource2025": [
+    {
+      "id": "supply_chain",
+      "name": "Supply Chain",
+      "share": 75,
+      "emissions": 2963,
+      "color": "#F4633A"
+    },
+    {
+      "id": "buildings",
+      "name": "Buildings",
+      "share": 14,
+      "emissions": 546,
+      "color": "#515254"
+    },
+    {
+      "id": "transport",
+      "name": "Transport",
+      "share": 11,
+      "emissions": 430,
+      "color": "#7a7c7f"
+    },
+    {
+      "id": "medical_gases",
+      "name": "Medical Gases",
+      "share": 0,
+      "emissions": 11,
+      "color": "#a4a6a9"
+    },
+    {
+      "id": "waste",
+      "name": "Waste",
+      "share": 0,
+      "emissions": 8,
+      "color": "#cdd0d3"
+    }
+  ],
+  "emissionsByScope2025": [
+    {
+      "id": "scope3",
+      "name": "Scope 3",
+      "share": 84,
+      "emissions": 3325,
+      "color": "#F4633A"
+    },
+    {
+      "id": "scope1_2",
+      "name": "Scope 1 & 2",
+      "share": 16,
+      "emissions": 633,
+      "color": "#515254"
+    }
+  ],
   "emissionsPerBody": [
     {
       "year": 2021,

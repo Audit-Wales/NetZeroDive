@@ -1,6 +1,85 @@
 {
-  "title": "Zeroing in?",
-  "duration": 56200,
+  "title": {
+    "en": "Zeroing in?",
+    "cy": "Anelu am sero?"
+  },
+  "duration": 124200,
+  "aspectRatio": "16:9",
+  "uiMode": "inset",
+  "languages": [
+    {
+      "code": "en",
+      "label": "English",
+      "default": true
+    },
+    {
+      "code": "cy",
+      "label": "Cymraeg"
+    }
+  ],
+  "audio": [
+    {
+      "src": "audio/placid-ambient.ogg",
+      "role": "music",
+      "loop": true,
+      "volume": 0.28
+    },
+    {
+      "src": "audio/voice-en.wav",
+      "lang": "en",
+      "role": "narration",
+      "volume": 1
+    }
+  ],
+  "captions": [
+    {
+      "srclang": "en",
+      "label": "English",
+      "default": true,
+      "cues": [
+        { "startTime": 1200, "endTime": 5800, "text": "Wales is unlikely to achieve the 2030 ambition." },
+        { "startTime": 6400, "endTime": 10200, "text": "In 2021, an ambition was set: net zero by 2030." },
+        { "startTime": 10400, "endTime": 14600, "text": "In 2022, we found \u2018clear uncertainty\u2019 it would be met." },
+        { "startTime": 14800, "endTime": 19000, "text": "Now, it's highly unlikely the public sector will achieve that collective ambition." },
+        { "startTime": 21400, "endTime": 25900, "text": "Action has happened \u2014 public bodies have taken steps forward." },
+        { "startTime": 26400, "endTime": 33900, "text": "Reporting bodies have increased from 69 to 82 between 2021-22 and 2024-25." },
+        { "startTime": 34400, "endTime": 38900, "text": "But decarbonisation has become a lower priority for public bodies." },
+        { "startTime": 39400, "endTime": 45900, "text": "Better understanding, more reporting and more plans \u2014 against financial pressures, political pressures, and reticence about delivery." },
+        { "startTime": 54400, "endTime": 58000, "text": "\u201cDecarbonisation is a discretionary priority.\u201d" },
+        { "startTime": 58200, "endTime": 61200, "text": "\u201cFinance is just the overwhelming problem for everyone at the moment.\u201d" },
+        { "startTime": 61400, "endTime": 64000, "text": "\u201cThere's a better understanding of the scale of the challenge\u2026 but there's reticence about what it will take.\u201d" },
+        { "startTime": 64200, "endTime": 66000, "text": "\u201cNet zero has become a political hot potato.\u201d" },
+        { "startTime": 69400, "endTime": 73800, "text": "Progress is difficult to measure and deliver." },
+        { "startTime": 74400, "endTime": 81800, "text": "Most emissions come from the supply chain \u2014 sitting largely outside public bodies' direct control." },
+        { "startTime": 89400, "endTime": 96800, "text": "Finance and skills remain major barriers \u2014 decarbonising council buildings alone is estimated at \u00a32.8 billion, against \u00a3228 million of funding since our last report." },
+        { "startTime": 104400, "endTime": 108400, "text": "So what can be done to close the gap?" },
+        { "startTime": 109400, "endTime": 116400, "text": "To close the gap, public bodies need clearer direction, better data, financial planning, and stronger skills." }
+      ]
+    },
+    {
+      "srclang": "cy",
+      "label": "Cymraeg",
+      "cues": [
+        { "startTime": 1200, "endTime": 5800, "text": "Mae'n annhebygol y bydd Cymru'n cyflawni uchelgais 2030." },
+        { "startTime": 6400, "endTime": 10200, "text": "Yn 2021, gosodwyd uchelgais: sero net erbyn 2030." },
+        { "startTime": 10400, "endTime": 14600, "text": "Yn 2022, canfuwyd 'ansicrwydd clir' y byddai'n cael ei gyflawni." },
+        { "startTime": 14800, "endTime": 19000, "text": "Nawr, mae'n hynod annhebygol y bydd y sector cyhoeddus yn cyflawni'r uchelgais ar y cyd." },
+        { "startTime": 21400, "endTime": 25900, "text": "Mae camau wedi'u cymryd \u2014 mae cyrff cyhoeddus wedi cymryd camau ymlaen." },
+        { "startTime": 26400, "endTime": 33900, "text": "Mae nifer y cyrff adrodd wedi cynyddu o 69 i 82 rhwng 2021-22 a 2024-25." },
+        { "startTime": 34400, "endTime": 38900, "text": "Ond mae datgarboneiddio wedi dod yn flaenoriaeth is i gyrff cyhoeddus." },
+        { "startTime": 39400, "endTime": 45900, "text": "Gwell dealltwriaeth, mwy o adrodd a mwy o gynlluniau \u2014 yn erbyn pwysau ariannol, pwysau gwleidyddol, ac amharodrwydd ynghylch cyflawni." },
+        { "startTime": 54400, "endTime": 58000, "text": "\u201cBlaenoriaeth ddewisol yw datgarboneiddio.\u201d" },
+        { "startTime": 58200, "endTime": 61200, "text": "\u201cCyllid yw'r broblem sy'n llethu pawb ar hyn o bryd.\u201d" },
+        { "startTime": 61400, "endTime": 64000, "text": "\u201cMae gwell dealltwriaeth o faint yr her\u2026 ond mae amharodrwydd ynghylch beth fydd ei angen.\u201d" },
+        { "startTime": 64200, "endTime": 66000, "text": "\u201cMae sero net wedi dod yn daten boeth wleidyddol.\u201d" },
+        { "startTime": 69400, "endTime": 73800, "text": "Mae cynnydd yn anodd ei fesur a'i gyflawni." },
+        { "startTime": 74400, "endTime": 81800, "text": "Daw'r rhan fwyaf o'r allyriadau o'r gadwyn gyflenwi \u2014 y tu allan i reolaeth uniongyrchol cyrff cyhoeddus, i raddau helaeth." },
+        { "startTime": 89400, "endTime": 96800, "text": "Mae cyllid a sgiliau yn parhau i fod yn rhwystrau mawr \u2014 amcangyfrifir cost datgarboneiddio adeiladau cynghorau yn unig yn \u00a32.8 biliwn, o gymharu \u00e2 \u00a3228 miliwn o gyllid ers ein hadroddiad diwethaf." },
+        { "startTime": 104400, "endTime": 108400, "text": "Felly beth all gael ei wneud i gau'r bwlch?" },
+        { "startTime": 109400, "endTime": 116400, "text": "I gau'r bwlch, mae angen ar gyrff cyhoeddus gyfeiriad cliriach, data gwell, cynllunio ariannol a sgiliau cryfach." }
+      ]
+    }
+  ],
   "timelineSections": [
     {
       "id": "section-title",
@@ -19,44 +98,79 @@
     {
       "id": "section-context-timeline",
       "startTime": 6200,
-      "endTime": 19200,
+      "endTime": 21200,
       "label": "Context & Timeline",
       "color": "#475569"
     },
     {
       "id": "section-action-message",
-      "startTime": 19200,
-      "endTime": 24200,
+      "startTime": 21200,
+      "endTime": 26200,
       "label": "Action Taken",
       "color": "#0d9488"
     },
     {
       "id": "section-bodies-growth",
-      "startTime": 24200,
-      "endTime": 32200,
+      "startTime": 26200,
+      "endTime": 34200,
       "label": "Reporting Bodies",
       "color": "#F4633A"
     },
     {
       "id": "section-lower-priority",
-      "startTime": 32200,
-      "endTime": 37200,
+      "startTime": 34200,
+      "endTime": 39200,
       "label": "Lower Priority",
       "color": "#9a3412"
     },
     {
       "id": "section-balance-scale",
-      "startTime": 37200,
-      "endTime": 44200,
+      "startTime": 39200,
+      "endTime": 54200,
       "label": "Balance of Pressures",
       "color": "#6b7280"
     },
     {
       "id": "section-quotes",
-      "startTime": 44200,
-      "endTime": 56200,
+      "startTime": 54200,
+      "endTime": 69200,
       "label": "In Their Words",
       "color": "#F4633A"
+    },
+    {
+      "id": "section-measure-deliver",
+      "startTime": 69200,
+      "endTime": 74200,
+      "label": "Measure & Deliver",
+      "color": "#334155"
+    },
+    {
+      "id": "section-supply-chain",
+      "startTime": 74200,
+      "endTime": 89200,
+      "label": "Supply Chain",
+      "color": "#b45309"
+    },
+    {
+      "id": "section-finance-barriers",
+      "startTime": 89200,
+      "endTime": 104200,
+      "label": "Finance & Skills",
+      "color": "#78350f"
+    },
+    {
+      "id": "section-what-can-be-done",
+      "startTime": 104200,
+      "endTime": 109200,
+      "label": "What Can Be Done",
+      "color": "#0d9488"
+    },
+    {
+      "id": "section-recommendations",
+      "startTime": 109200,
+      "endTime": 124200,
+      "label": "Recommendations",
+      "color": "#0d9488"
     }
   ],
   "scenes": [
@@ -92,7 +206,7 @@
       "id": "scene-3-context-timeline",
       "tool": "tools/narrative-timeline.html",
       "startTime": 6200,
-      "endTime": 19200,
+      "endTime": 21200,
       "sendData": false,
       "keyframes": [
         {
@@ -105,8 +219,8 @@
     {
       "id": "scene-4-action-message",
       "tool": "tools/action-message.html",
-      "startTime": 19200,
-      "endTime": 24200,
+      "startTime": 21200,
+      "endTime": 26200,
       "sendData": false,
       "keyframes": [
         {
@@ -119,16 +233,16 @@
     {
       "id": "scene-5-bodies-growth",
       "tool": "tools/reporting-bodies-growth.html",
-      "startTime": 24200,
-      "endTime": 32200,
+      "startTime": 26200,
+      "endTime": 34200,
       "sendData": false,
       "keyframes": [
         {
           "time": 0,
           "state": {
             "streamTime": true,
-            "segmentStartTimeMs": 24200,
-            "segmentEndTimeMs": 27200
+            "segmentStartTimeMs": 26200,
+            "segmentEndTimeMs": 29200
           }
         }
       ],
@@ -137,8 +251,8 @@
     {
       "id": "scene-6-lower-priority",
       "tool": "tools/key-message-priority.html",
-      "startTime": 32200,
-      "endTime": 37200,
+      "startTime": 34200,
+      "endTime": 39200,
       "sendData": false,
       "keyframes": [
         {
@@ -151,8 +265,8 @@
     {
       "id": "scene-7-balance-scale",
       "tool": "tools/balance-scale.html",
-      "startTime": 37200,
-      "endTime": 44200,
+      "startTime": 39200,
+      "endTime": 54200,
       "sendData": false,
       "keyframes": [
         {
@@ -165,8 +279,86 @@
     {
       "id": "scene-8-quotes",
       "tool": "tools/quotes.html",
-      "startTime": 44200,
-      "endTime": 56200,
+      "startTime": 54200,
+      "endTime": 69200,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "scene-9-measure-deliver",
+      "tool": "tools/measure-deliver-message.html",
+      "startTime": 69200,
+      "endTime": 74200,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "scene-10-supply-chain-donut",
+      "tool": "tools/sector-donut.html",
+      "startTime": 74200,
+      "endTime": 89200,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": { "phase": 1 }
+        },
+        {
+          "time": 2000,
+          "state": { "phase": 2 }
+        },
+        {
+          "time": 6000,
+          "state": { "phase": 3 }
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "scene-11-finance-barriers",
+      "tool": "tools/finance-barriers.html",
+      "startTime": 89200,
+      "endTime": 104200,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "scene-12-what-can-be-done",
+      "tool": "tools/what-can-be-done.html",
+      "startTime": 104200,
+      "endTime": 109200,
+      "sendData": false,
+      "keyframes": [
+        {
+          "time": 0,
+          "state": {}
+        }
+      ],
+      "overlays": []
+    },
+    {
+      "id": "scene-13-recommendations",
+      "tool": "tools/recommendations.html",
+      "startTime": 109200,
+      "endTime": 124200,
       "sendData": false,
       "keyframes": [
         {

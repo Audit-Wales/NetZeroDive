@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Balance of pressures</title>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -11,14 +12,14 @@
       font-family: Arial, "Segoe UI", sans-serif;
       color: #1f2937;
     }
-    body { animation: pageFadeOut 0.8s ease 6.2s forwards; }
+    body { animation: pageFadeOut 0.8s ease 14.2s forwards; }
     #stage {
-      position: absolute; inset: 0;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 140px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 18px;
+      gap: 22px;
     }
     .kicker {
-      font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+      font-size: clamp(1.1rem, 2.2vw, 1.5rem);
       font-weight: 700;
       letter-spacing: 0.2em;
       text-transform: uppercase;
@@ -28,7 +29,7 @@
     }
     .scale-wrap {
       position: relative;
-      width: min(88%, 780px);
+      width: min(92%, 880px);
       height: 300px;
     }
     .fulcrum {
@@ -51,7 +52,7 @@
       background: linear-gradient(#6b7280, #4b5563);
       transform-origin: 50% 50%;
       opacity: 0;
-      animation: fadeIn 0.4s ease 0.3s forwards, tiltBeam 1.6s cubic-bezier(0.4,0,0.2,1) 2.1s forwards;
+      animation: fadeIn 0.4s ease 0.3s forwards, tiltBeam 6.6s cubic-bezier(0.4,0,0.2,1) 2.4s forwards;
     }
     .pan {
       position: absolute; top: 100%;
@@ -64,14 +65,24 @@
       width: 2px; height: 38px;
       background: #9ca3af;
     }
-    .pan-left  { left: 0;  animation: counterTiltLeft  1.6s cubic-bezier(0.4,0,0.2,1) 2.1s forwards; transform: translateX(-50%); }
-    .pan-right { right: 0; animation: counterTiltRight 1.6s cubic-bezier(0.4,0,0.2,1) 2.1s forwards; transform: translateX(50%); }
+    .pan-left  { left: 0;  animation: counterTiltLeft  6.6s cubic-bezier(0.4,0,0.2,1) 2.4s forwards; transform: translateX(-50%); }
+    .pan-right { right: 0; animation: counterTiltRight 6.6s cubic-bezier(0.4,0,0.2,1) 2.4s forwards; transform: translateX(50%); }
+
+    .verdict {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      font-weight: 800;
+      color: #F4633A;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: verdictIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 9.6s forwards;
+    }
 
     .chip {
       margin-top: 8px;
-      padding: 9px 14px;
+      padding: 12px 18px;
       border-radius: 10px;
-      font-size: 13px;
+      font-size: clamp(1.05rem, 2.1vw, 1.4rem);
       font-weight: 700;
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(17,24,39,0.08);
@@ -85,12 +96,12 @@
     .chip.positive .icon { color: #6b7280; }
     .chip.pressure .icon { color: #F4633A; }
 
-    .pan-left  .chip:nth-child(1) { animation-delay: 0.4s; }
-    .pan-left  .chip:nth-child(2) { animation-delay: 0.8s; }
-    .pan-left  .chip:nth-child(3) { animation-delay: 1.2s; }
-    .pan-right .chip:nth-child(1) { animation-delay: 0.6s; }
-    .pan-right .chip:nth-child(2) { animation-delay: 1.0s; }
-    .pan-right .chip:nth-child(3) { animation-delay: 1.4s; }
+    .pan-left  .chip:nth-child(1) { animation-delay: 0.5s; }
+    .pan-left  .chip:nth-child(2) { animation-delay: 1.0s; }
+    .pan-left  .chip:nth-child(3) { animation-delay: 1.5s; }
+    .pan-right .chip:nth-child(1) { animation-delay: 0.7s; }
+    .pan-right .chip:nth-child(2) { animation-delay: 1.2s; }
+    .pan-right .chip:nth-child(3) { animation-delay: 1.7s; }
 
     @keyframes fadeIn {
       to { opacity: 1; }
@@ -99,13 +110,34 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
     @keyframes tiltBeam {
-      to { transform: rotate(7deg); }
+      0% { transform: rotate(0deg); }
+      18% { transform: rotate(-7deg); }
+      36% { transform: rotate(9deg); }
+      54% { transform: rotate(-5deg); }
+      72% { transform: rotate(7deg); }
+      86% { transform: rotate(9deg); }
+      100% { transform: rotate(11deg); }
     }
     @keyframes counterTiltLeft {
-      to { transform: translateX(-50%) rotate(-7deg); }
+      0% { transform: translateX(-50%) rotate(0deg); }
+      18% { transform: translateX(-50%) rotate(7deg); }
+      36% { transform: translateX(-50%) rotate(-9deg); }
+      54% { transform: translateX(-50%) rotate(5deg); }
+      72% { transform: translateX(-50%) rotate(-7deg); }
+      86% { transform: translateX(-50%) rotate(-9deg); }
+      100% { transform: translateX(-50%) rotate(-11deg); }
     }
     @keyframes counterTiltRight {
-      to { transform: translateX(50%) rotate(-7deg); }
+      0% { transform: translateX(50%) rotate(0deg); }
+      18% { transform: translateX(50%) rotate(7deg); }
+      36% { transform: translateX(50%) rotate(-9deg); }
+      54% { transform: translateX(50%) rotate(5deg); }
+      72% { transform: translateX(50%) rotate(-7deg); }
+      86% { transform: translateX(50%) rotate(-9deg); }
+      100% { transform: translateX(50%) rotate(-11deg); }
+    }
+    @keyframes verdictIn {
+      to { opacity: 1; transform: translateY(0); }
     }
     @keyframes pageFadeOut {
       to { opacity: 0; }
@@ -114,18 +146,19 @@
 </head>
 <body>
   <div id="stage">
-    <div class="kicker">Progress vs. pressure</div>
+    <div class="kicker" data-i18n="balanceKicker">Progress vs. pressure</div>
+    <div class="verdict" data-i18n="balanceVerdict">The ambition is losing traction.</div>
     <div class="scale-wrap">
       <div class="beam">
         <div class="pan pan-left">
-          <div class="chip positive"><span class="icon">&#10003;</span>Better understanding</div>
-          <div class="chip positive"><span class="icon">&#10003;</span>More reporting</div>
-          <div class="chip positive"><span class="icon">&#10003;</span>More plans</div>
+          <div class="chip positive"><span class="icon">&#10003;</span><span data-i18n="balancePositive1">Better understanding</span></div>
+          <div class="chip positive"><span class="icon">&#10003;</span><span data-i18n="balancePositive2">More reporting</span></div>
+          <div class="chip positive"><span class="icon">&#10003;</span><span data-i18n="balancePositive3">More plans</span></div>
         </div>
         <div class="pan pan-right">
-          <div class="chip pressure"><span class="icon">&#9888;</span>Financial pressures</div>
-          <div class="chip pressure"><span class="icon">&#9888;</span>Political pressures</div>
-          <div class="chip pressure"><span class="icon">&#9888;</span>Reticence about delivery</div>
+          <div class="chip pressure"><span class="icon">&#9888;</span><span data-i18n="balancePressure1">Financial pressures</span></div>
+          <div class="chip pressure"><span class="icon">&#9888;</span><span data-i18n="balancePressure2">Political pressures</span></div>
+          <div class="chip pressure"><span class="icon">&#9888;</span><span data-i18n="balancePressure3">Reticence about delivery</span></div>
         </div>
       </div>
       <div class="post"></div>

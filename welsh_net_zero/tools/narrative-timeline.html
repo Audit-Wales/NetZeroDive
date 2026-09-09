@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Context &amp; timeline</title>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -13,19 +14,23 @@
     }
     body {
       display: flex; align-items: stretch;
-      animation: pageFadeOut 0.8s ease 12.2s forwards;
+      background:
+        radial-gradient(circle at 95% 4%, rgba(244,99,58,0.08), transparent 42%),
+        radial-gradient(circle at 4% 96%, rgba(13,148,136,0.06), transparent 40%),
+        #f9fafb;
+      animation: pageFadeOut 0.8s ease 14.2s forwards;
     }
 
     #text-panel {
       flex: 0 0 50%;
       display: flex; flex-direction: column; justify-content: center;
-      gap: 1.4em;
+      gap: 1.8em;
       padding: 6% 4% 6% 6%;
       box-sizing: border-box;
     }
     .line {
       margin: 0;
-      font-size: clamp(1.05rem, 2.1vw, 1.5rem);
+      font-size: clamp(1.25rem, 2.7vw, 2rem);
       line-height: 1.5;
       color: #374151;
       opacity: 0;
@@ -33,27 +38,27 @@
       animation: fadeUp 0.6s ease forwards;
     }
     .line .quote { color: #F4633A; font-weight: 700; }
-    #line1 { animation-delay: 0.3s; }
-    #line2 { animation-delay: 3.0s; }
-    #line3 { animation-delay: 6.4s; }
+    #line1 { animation-delay: 0.2s; }
+    #line2 { animation-delay: 4.2s; }
+    #line3 { animation-delay: 8.6s; }
 
     #timeline-panel {
       flex: 0 0 50%;
       position: relative;
       display: flex; flex-direction: column; justify-content: center;
-      gap: 34px;
+      gap: 42px;
       padding: 6% 6% 6% 4%;
       box-sizing: border-box;
       border-left: 1px solid #e5e7eb;
     }
     .track {
       position: absolute;
-      left: calc(6% + 27px);
+      left: calc(6% + 32px);
       top: 8%;
       bottom: 8%;
-      width: 4px;
+      width: 6px;
       background: #e5e7eb;
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
     }
     .track::after {
@@ -62,30 +67,30 @@
       background: #F4633A;
       transform: scaleY(0);
       transform-origin: top;
-      animation: growTrack 8.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+      animation: growTrack 11.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
     }
     .node {
-      display: flex; align-items: center; gap: 18px;
+      display: flex; align-items: center; gap: 22px;
       position: relative; z-index: 1;
       opacity: 0;
-      transform: translateX(16px);
-      animation: fadeIn 0.5s ease forwards;
+      transform: translateX(20px) scale(0.9);
+      animation: fadeIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
       cursor: pointer;
     }
     .node.n1 { animation-delay: 0.3s; }
-    .node.n2 { animation-delay: 2.8s; }
-    .node.n3 { animation-delay: 5.6s; }
-    .node.n4 { animation-delay: 8.2s; }
+    .node.n2 { animation-delay: 4.2s; }
+    .node.n3 { animation-delay: 8.6s; }
+    .node.n4 { animation-delay: 11.2s; }
 
     .dot {
       flex: none;
-      width: 54px; height: 54px;
+      width: 64px; height: 64px;
       border-radius: 50%;
       background: #ffffff;
       border: 3px solid #cbd5e1;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+      font-size: 26px;
+      box-shadow: 0 3px 10px rgba(17, 24, 39, 0.1);
       position: relative;
       transition: transform 0.2s ease, border-color 0.2s ease;
     }
@@ -94,27 +99,28 @@
       border-color: #F4633A;
     }
     .node.current .dot {
-      width: 62px; height: 62px; font-size: 28px;
+      width: 76px; height: 76px; font-size: 34px;
       border-color: #F4633A;
       color: #F4633A;
-      box-shadow: 0 0 0 6px rgba(244,99,58,0.15), 0 4px 14px rgba(244,99,58,0.3);
-      animation: pulseDot 1.8s ease-in-out 6.1s infinite;
+      box-shadow: 0 0 0 8px rgba(244,99,58,0.15), 0 6px 18px rgba(244,99,58,0.32);
+      animation: pulseDot 1.8s ease-in-out 9.1s infinite;
     }
     .node.current:hover .dot { transform: scale(1.08); }
     .node.target .dot {
       border-style: dashed;
       border-color: #F4633A;
       background: #fff6f3;
+      animation: pulseRing 2.4s ease-in-out 11.7s infinite;
     }
     .label .year {
       display: block;
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 1.25rem;
       color: #111827;
     }
     .label .desc {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: #6b7280;
       margin-top: 2px;
     }
@@ -123,11 +129,11 @@
 
     .tooltip {
       position: absolute;
-      top: 100%; left: 72px;
+      top: 100%; left: 86px;
       margin-top: 8px;
       background: #111827; color: #f9fafb;
-      font-size: 12px; line-height: 1.4;
-      padding: 6px 10px; border-radius: 6px;
+      font-size: 13px; line-height: 1.4;
+      padding: 7px 12px; border-radius: 6px;
       white-space: nowrap;
       box-shadow: 0 6px 16px rgba(0,0,0,0.2);
       opacity: 0; transform: translateY(-4px);
@@ -141,31 +147,35 @@
       position: absolute;
       top: 5%; left: 4%;
       display: flex; align-items: center; gap: 7px;
-      font-size: 12px; font-weight: 600; color: #6b7280;
+      font-size: 13px; font-weight: 600; color: #6b7280;
       opacity: 0;
       animation: fadeUp 0.5s ease 1.0s forwards;
     }
     .info-badge {
       flex: none;
-      width: 18px; height: 18px; border-radius: 50%;
+      width: 20px; height: 20px; border-radius: 50%;
       background: #eef2f7; color: #6b7280;
       border: 1px solid #d1d5db;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; font-style: italic;
+      font-size: 12px; font-weight: 700; font-style: italic;
     }
 
     @keyframes fadeUp {
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes fadeIn {
-      to { opacity: 1; transform: translateX(0); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
     }
     @keyframes growTrack {
       to { transform: scaleY(1); }
     }
     @keyframes pulseDot {
-      0%, 100% { box-shadow: 0 0 0 6px rgba(244,99,58,0.15), 0 4px 14px rgba(244,99,58,0.3); }
-      50% { box-shadow: 0 0 0 12px rgba(244,99,58,0), 0 4px 14px rgba(244,99,58,0.3); }
+      0%, 100% { box-shadow: 0 0 0 8px rgba(244,99,58,0.15), 0 6px 18px rgba(244,99,58,0.32); }
+      50% { box-shadow: 0 0 0 16px rgba(244,99,58,0), 0 6px 18px rgba(244,99,58,0.32); }
+    }
+    @keyframes pulseRing {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244,99,58,0); }
+      50% { box-shadow: 0 0 0 8px rgba(244,99,58,0.12); }
     }
     @keyframes pageFadeOut {
       to { opacity: 0; }
@@ -174,33 +184,33 @@
 </head>
 <body>
   <div id="text-panel">
-    <p class="line" id="line1"><strong>2021</strong> &mdash; an ambition was set: net zero by 2030.</p>
-    <p class="line" id="line2"><strong>2022</strong> &mdash; we found <span class="quote">&lsquo;clear uncertainty&rsquo;</span> it would be met.</p>
-    <p class="line" id="line3"><strong>Now</strong> &mdash; it is highly unlikely that the public sector will achieve the collective ambition.</p>
+    <p class="line" id="line1" data-i18n-html="timelineLine1"><strong>2021</strong> &mdash; an ambition was set: net zero by 2030.</p>
+    <p class="line" id="line2" data-i18n-html="timelineLine2"><strong>2022</strong> &mdash; we found <span class="quote">&lsquo;clear uncertainty&rsquo;</span> it would be met.</p>
+    <p class="line" id="line3" data-i18n-html="timelineLine3"><strong>Now</strong> &mdash; it is highly unlikely that the public sector will achieve the collective ambition.</p>
   </div>
 
   <div id="timeline-panel">
-    <div class="info-hint"><span class="info-badge">i</span>Hover the icons for detail</div>
+    <div class="info-hint"><span class="info-badge">i</span><span data-i18n="timelineHint">Hover the icons for detail</span></div>
     <div class="track"></div>
     <div class="node n1">
       <div class="dot">&#128681;</div>
-      <div class="label"><span class="year">2021</span><span class="desc">Ambition set</span></div>
-      <div class="tooltip">Net zero by 2030 announced</div>
+      <div class="label"><span class="year">2021</span><span class="desc" data-i18n="timelineN1Desc">Ambition set</span></div>
+      <div class="tooltip" data-i18n="timelineN1Tip">Net zero by 2030 announced</div>
     </div>
     <div class="node n2">
       <div class="dot">&#128203;</div>
-      <div class="label"><span class="year">2022</span><span class="desc">Previous report</span></div>
-      <div class="tooltip">Flagged as uncertain early on</div>
+      <div class="label"><span class="year">2022</span><span class="desc" data-i18n="timelineN2Desc">Previous report</span></div>
+      <div class="tooltip" data-i18n="timelineN2Tip">Flagged as uncertain early on</div>
     </div>
     <div class="node n3 current">
       <div class="dot">&#9888;</div>
-      <div class="label"><span class="year">2026</span><span class="desc">This review</span></div>
-      <div class="tooltip">Still unlikely to be met</div>
+      <div class="label"><span class="year">2026</span><span class="desc" data-i18n="timelineN3Desc">This review</span></div>
+      <div class="tooltip" data-i18n="timelineN3Tip">Still unlikely to be met</div>
     </div>
     <div class="node n4 target">
       <div class="dot">&#127937;</div>
-      <div class="label"><span class="year">2030</span><span class="desc">Net Zero Ambition</span></div>
-      <div class="tooltip">Target year for net zero</div>
+      <div class="label"><span class="year">2030</span><span class="desc" data-i18n="timelineN4Desc">Net Zero Ambition</span></div>
+      <div class="tooltip" data-i18n="timelineN4Tip">Target year for net zero</div>
     </div>
   </div>
 </body>

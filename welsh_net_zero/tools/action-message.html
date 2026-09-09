@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Action message</title>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -81,8 +82,8 @@
 </head>
 <body>
   <div id="stage">
-    <div class="kicker">Audit Wales</div>
-    <div class="headline">Action has <span class="hl">happened<span class="hl-tip">Public bodies have taken steps forward</span></span></div>
+    <div class="kicker" data-i18n="actionKicker">Audit Wales</div>
+    <div class="headline"><span data-i18n="actionPre">Action has</span> <span class="hl"><span data-i18n="actionHighlight">happened</span><span class="hl-tip" data-i18n="actionTip">Public bodies have taken steps forward</span></span></div>
     <div class="bar"></div>
   </div>
 </body>

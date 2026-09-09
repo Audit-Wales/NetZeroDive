@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Key message</title>
+  <title>What can be done</title>
   <script src="dive-lang.js"></script>
   <style>
     html, body {
@@ -17,7 +17,7 @@
       text-align: center;
       padding: 0 10%;
       background:
-        radial-gradient(circle at 92% 8%, rgba(244,99,58,0.07), transparent 40%),
+        radial-gradient(circle at 92% 8%, rgba(13,148,136,0.08), transparent 40%),
         radial-gradient(circle at 6% 94%, rgba(244,99,58,0.05), transparent 38%),
         #ffffff;
     }
@@ -41,12 +41,12 @@
     }
     .headline .hl {
       position: relative;
-      color: #F4633A;
+      color: #0d9488;
       cursor: pointer;
-      border-bottom: 3px solid rgba(244,99,58,0.3);
+      border-bottom: 3px solid rgba(13,148,136,0.3);
       transition: border-color 0.2s ease;
     }
-    .headline .hl:hover { border-color: #F4633A; }
+    .headline .hl:hover { border-color: #0d9488; }
     .hl-tip {
       position: absolute; left: 50%; top: 100%;
       transform: translate(-50%, 4px);
@@ -61,7 +61,7 @@
     .headline .hl:hover .hl-tip { opacity: 1; transform: translate(-50%, 10px); }
     .bar {
       width: 64px; height: 4px; border-radius: 2px;
-      background: #F4633A;
+      background: #0d9488;
       opacity: 0;
       animation: barReveal 4.8s ease 0.2s both;
     }
@@ -82,8 +82,8 @@
 </head>
 <body>
   <div id="stage">
-    <div class="kicker" data-i18n="keyMessageKicker">Audit Wales</div>
-    <div class="headline"><span data-i18n="keyMessagePre">Wales is unlikely to achieve</span> <span class="hl"><span data-i18n="keyMessageHighlight">the 2030 ambition</span><span class="hl-tip" data-i18n="keyMessageTip">Confirmed by our 2026 review</span></span></div>
+    <div class="kicker" data-i18n="whatCanBeDoneKicker">Audit Wales</div>
+    <div class="headline"><span data-i18n="whatCanBeDonePre">So what can be</span> <span class="hl"><span data-i18n="whatCanBeDoneHighlight">done</span><span class="hl-tip" data-i18n="whatCanBeDoneTip">Four clear priorities can close the gap</span></span>?</div>
     <div class="bar"></div>
   </div>
 </body>
