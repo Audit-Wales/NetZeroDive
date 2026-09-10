@@ -45,10 +45,9 @@
         { "startTime": 26400, "endTime": 33900, "text": "Reporting bodies have increased from 69 to 82 between 2021-22 and 2024-25." },
         { "startTime": 34400, "endTime": 38900, "text": "But decarbonisation has become a lower priority for public bodies." },
         { "startTime": 39400, "endTime": 45900, "text": "Better understanding, more reporting and more plans \u2014 against financial pressures, political pressures, and reticence about delivery." },
-        { "startTime": 54400, "endTime": 58000, "text": "\u201cDecarbonisation is a discretionary priority.\u201d" },
-        { "startTime": 58200, "endTime": 61200, "text": "\u201cFinance is just the overwhelming problem for everyone at the moment.\u201d" },
-        { "startTime": 61400, "endTime": 64000, "text": "\u201cThere's a better understanding of the scale of the challenge\u2026 but there's reticence about what it will take.\u201d" },
-        { "startTime": 64200, "endTime": 66000, "text": "\u201cNet zero has become a political hot potato.\u201d" },
+        { "startTime": 54400, "endTime": 59200, "text": "Averaged per reporting body, emissions fell sharply after 2021." },
+        { "startTime": 59400, "endTime": 64200, "text": "But the last two years show that progress stalling — even ticking back up." },
+        { "startTime": 64400, "endTime": 68800, "text": "A sign that decarbonisation is losing momentum as a priority." },
         { "startTime": 69400, "endTime": 73800, "text": "Progress is difficult to measure and deliver." },
         { "startTime": 74400, "endTime": 81800, "text": "Most emissions come from the supply chain \u2014 sitting largely outside public bodies' direct control." },
         { "startTime": 89400, "endTime": 96800, "text": "Finance and skills remain major barriers \u2014 decarbonising council buildings alone is estimated at \u00a32.8 billion, against \u00a3228 million of funding since our last report." },
@@ -68,10 +67,9 @@
         { "startTime": 26400, "endTime": 33900, "text": "Mae nifer y cyrff adrodd wedi cynyddu o 69 i 82 rhwng 2021-22 a 2024-25." },
         { "startTime": 34400, "endTime": 38900, "text": "Ond mae datgarboneiddio wedi dod yn flaenoriaeth is i gyrff cyhoeddus." },
         { "startTime": 39400, "endTime": 45900, "text": "Gwell dealltwriaeth, mwy o adrodd a mwy o gynlluniau \u2014 yn erbyn pwysau ariannol, pwysau gwleidyddol, ac amharodrwydd ynghylch cyflawni." },
-        { "startTime": 54400, "endTime": 58000, "text": "\u201cBlaenoriaeth ddewisol yw datgarboneiddio.\u201d" },
-        { "startTime": 58200, "endTime": 61200, "text": "\u201cCyllid yw'r broblem sy'n llethu pawb ar hyn o bryd.\u201d" },
-        { "startTime": 61400, "endTime": 64000, "text": "\u201cMae gwell dealltwriaeth o faint yr her\u2026 ond mae amharodrwydd ynghylch beth fydd ei angen.\u201d" },
-        { "startTime": 64200, "endTime": 66000, "text": "\u201cMae sero net wedi dod yn daten boeth wleidyddol.\u201d" },
+        { "startTime": 54400, "endTime": 59200, "text": "Ar gyfartaledd fesul corff adrodd, syrthiodd allyriadau'n sydyn ar ôl 2021." },
+        { "startTime": 59400, "endTime": 64200, "text": "Ond mae'r ddwy flynedd ddiwethaf yn dangos y cynnydd hwnnw'n arafu — ac yn codi eto hyd yn oed." },
+        { "startTime": 64400, "endTime": 68800, "text": "Arwydd bod datgarboneiddio'n colli momentwm fel blaenoriaeth." },
         { "startTime": 69400, "endTime": 73800, "text": "Mae cynnydd yn anodd ei fesur a'i gyflawni." },
         { "startTime": 74400, "endTime": 81800, "text": "Daw'r rhan fwyaf o'r allyriadau o'r gadwyn gyflenwi \u2014 y tu allan i reolaeth uniongyrchol cyrff cyhoeddus, i raddau helaeth." },
         { "startTime": 89400, "endTime": 96800, "text": "Mae cyllid a sgiliau yn parhau i fod yn rhwystrau mawr \u2014 amcangyfrifir cost datgarboneiddio adeiladau cynghorau yn unig yn \u00a32.8 biliwn, o gymharu \u00e2 \u00a3228 miliwn o gyllid ers ein hadroddiad diwethaf." },
@@ -131,10 +129,10 @@
       "color": "#6b7280"
     },
     {
-      "id": "section-quotes",
+      "id": "section-emissions-per-body",
       "startTime": 54200,
       "endTime": 69200,
-      "label": "In Their Words",
+      "label": "Emissions Per Body",
       "color": "#F4633A"
     },
     {
@@ -236,6 +234,7 @@
       "startTime": 26200,
       "endTime": 34200,
       "sendData": false,
+      "pauseOnInteract": true,
       "keyframes": [
         {
           "time": 0,
@@ -277,15 +276,20 @@
       "overlays": []
     },
     {
-      "id": "scene-8-quotes",
-      "tool": "tools/quotes.html",
+      "id": "scene-8-emissions-per-body",
+      "tool": "tools/emissions-per-body.html",
       "startTime": 54200,
       "endTime": 69200,
       "sendData": false,
+      "pauseOnInteract": true,
       "keyframes": [
         {
           "time": 0,
-          "state": {}
+          "state": {
+            "streamTime": true,
+            "segmentStartTimeMs": 54200,
+            "segmentEndTimeMs": 60200
+          }
         }
       ],
       "overlays": []
@@ -310,6 +314,7 @@
       "startTime": 74200,
       "endTime": 89200,
       "sendData": false,
+      "pauseOnInteract": true,
       "keyframes": [
         {
           "time": 0,

@@ -15,6 +15,7 @@
       display: flex; align-items: stretch;
     }
     body { animation: pageFadeOut 0.8s ease 14.2s forwards; }
+    body.explore-open { animation-play-state: paused; }
 
     #donut-panel {
       flex: 0 0 50%; display: flex; align-items: center; justify-content: center;
@@ -70,6 +71,130 @@
       white-space: nowrap; z-index: 8;
     }
 
+    .scope-arc {
+      opacity: 0; transform: scale(0.85); transform-box: fill-box; transform-origin: center;
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+    .scope-arc.revealed { opacity: 1; transform: scale(1); }
+
+    .leader-line {
+      fill: none; stroke: #9ca3af; stroke-width: 1.25;
+      opacity: 0; transition: opacity 0.4s ease 0.2s;
+    }
+    .leader-line.revealed { opacity: 1; }
+    .leader-label {
+      opacity: 0; transition: opacity 0.4s ease 0.25s;
+    }
+    .leader-label.revealed { opacity: 1; }
+    .leader-label .name { font-weight: 700; font-size: 13px; fill: #111827; }
+    .leader-label .value { font-size: 12.5px; fill: #6b7280; }
+    .leader-label .percent { font-size: 20px; font-weight: 800; fill: #111827; }
+
+    .center-total-label {
+      font-size: 13px; font-weight: 700; fill: #111827;
+      opacity: 0; transition: opacity 0.4s ease 0.15s;
+    }
+    .center-total-label.revealed { opacity: 1; }
+    .center-total-value {
+      font-weight: 700; fill: #111827;
+      opacity: 0; transform: scale(0.5); transform-box: fill-box; transform-origin: center;
+      transition: opacity 0.45s ease, transform 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+    .center-total-value.revealed { opacity: 1; transform: scale(1); }
+
+    /* ── Explore scope-trend button ── */
+    .explore-hint {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin: 22px 0 8px 0;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.5s ease, transform 0.3s ease;
+    }
+    .explore-hint.visible { opacity: 1; transform: translateY(0); }
+    #explore-btn {
+      align-self: flex-start;
+      background: #F4633A;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: Arial, "Segoe UI", sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(244,99,58,0.35);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease;
+    }
+    #explore-btn.visible {
+      opacity: 1; pointer-events: auto; transform: translateY(0);
+      animation: exploreBtnPulse 1.7s ease-in-out 0.6s 3;
+    }
+    #explore-btn:hover { background: #e0522e; transform: scale(1.05); }
+    #explore-btn:active { transform: scale(0.97); }
+    #explore-btn .arrow { display: inline-block; animation: exploreArrowNudge 1.7s ease-in-out 0.6s 3; }
+    @keyframes exploreBtnPulse {
+      0%, 100% { box-shadow: 0 4px 16px rgba(244,99,58,0.35), 0 0 0 0 rgba(244,99,58,0.45); }
+      50% { box-shadow: 0 4px 16px rgba(244,99,58,0.35), 0 0 0 14px rgba(244,99,58,0); }
+    }
+    @keyframes exploreArrowNudge {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(3px, -3px); }
+    }
+
+    /* ── Scope-trend pop-out modal ── */
+    #scope-trend-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #scope-trend-modal.open { opacity: 1; pointer-events: auto; }
+    #scope-trend-modal-inner {
+      position: relative;
+      width: min(92vw, 760px);
+      height: min(70vh, 420px);
+      background: #f9fafb;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      transform: scale(0.94);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #scope-trend-modal.open #scope-trend-modal-inner { transform: scale(1); }
+    #scope-trend-modal iframe { width: 100%; height: 100%; border: none; display: block; }
+    #scope-trend-modal-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      width: 32px; height: 32px;
+      background: rgba(17,24,39,0.55);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease;
+      z-index: 10;
+    }
+    #scope-trend-modal-close:hover { background: rgba(17,24,39,0.85); }
+
     @keyframes pageFadeOut { to { opacity: 0; } }
   </style>
 </head>
@@ -88,10 +213,20 @@
       <span data-i18n="donutHeadline2Suffix">of the total — compared with just 16% for Scopes 1 and 2 combined.</span>
     </p>
     <p class="body-text" id="body-text" style="display:none" data-i18n="donutBody">
-      Scope 3 emissions are indirect emissions, such as those generated in the production of
-      goods purchased by public bodies. So, public bodies have less direct influence over
-      Scope 3 emissions than Scope 1 and 2.
+      Scope 3 emissions are indirect emissions. Scope 3 accounts for the bulk of emissions,
+      but there is wide agreement that the data is not accurate enough to inform meaningful action.
     </p>
+    <div class="explore-hint" id="explore-hint" data-i18n="exploreBtnHint">Pause video to explore</div>
+    <button id="explore-btn" aria-label="See the 2021-2025 scope trend">
+      <span data-i18n="scopeTrendExploreBtn">See the 2021–2025 trend</span> <span class="arrow" aria-hidden="true">&#8599;</span>
+    </button>
+  </div>
+
+  <div id="scope-trend-modal" role="dialog" aria-modal="true" aria-label="Scope 1, 2 and 3 emissions trend">
+    <div id="scope-trend-modal-inner">
+      <button id="scope-trend-modal-close" aria-label="Close">&times;</button>
+      <iframe id="scope-trend-iframe" src="" title="Scope 1, 2 and 3 emissions trend"></iframe>
+    </div>
   </div>
 
   <script>
@@ -104,6 +239,12 @@
     function scope3Entry() {
       return chartData?.emissionsByScope2025?.find(s => s.id === 'scope3');
     }
+    function scopeEntries() {
+      return chartData?.emissionsByScope2025 ?? [];
+    }
+    function scopeNameKeys() {
+      return { scope1: 'donutScope1Label', scope2: 'donutScope2Label', scope3: 'donutScope3Label' };
+    }
 
     let chartData = null;
     let currentPhase = 1;
@@ -112,7 +253,6 @@
     let fallbackBootstrapStarted = false;
 
     const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
-    const ORANGE = '#F4633A';
 
     function standaloneDataUrl() {
       const p = new URLSearchParams(window.location.search);
@@ -144,13 +284,14 @@
       }
     }
 
-    let outerR, innerR, arcGen, combArcGen;
-    let individualGroup, combinedGroup, centerGroup;
+    let outerR, innerR, arcGen;
+    let slicesGroup, leaderGroup, centerGroup;
+    const LABEL_MIN_GAP = 34;
 
     function setupDonut() {
       const panel = document.getElementById('donut-panel');
-      const size = Math.min(panel.clientWidth, panel.clientHeight) * 0.88;
-      outerR = size / 2;
+      const size = Math.min(panel.clientWidth, panel.clientHeight) * 0.98;
+      outerR = size * 0.30;
       innerR = outerR * 0.58;
 
       donutSvg
@@ -161,30 +302,66 @@
       const g = donutSvg.selectAll('g.main').data([0]).join('g')
         .attr('class', 'main').attr('transform', `translate(${size/2},${size/2})`);
 
-      arcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(4).padAngle(0.018);
-      combArcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(6);
+      arcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(4).padAngle(0.015);
 
-      individualGroup = g.selectAll('g.individual').data([0]).join('g').attr('class', 'individual');
-      combinedGroup   = g.selectAll('g.combined').data([0]).join('g').attr('class', 'combined');
-      centerGroup     = g.selectAll('g.center').data([0]).join('g').attr('class', 'center');
+      slicesGroup = g.selectAll('g.slices').data([0]).join('g').attr('class', 'slices');
+      leaderGroup = g.selectAll('g.leaders').data([0]).join('g').attr('class', 'leaders');
+      centerGroup = g.selectAll('g.center').data([0]).join('g').attr('class', 'center');
 
-      centerGroup.selectAll('text.center-value').data([0]).join('text')
-        .attr('class', 'center-label center-value')
-        .attr('font-size', outerR * 0.28).attr('font-weight', 700).attr('fill', '#111827').attr('dy', '-0.2em');
-      centerGroup.selectAll('text.center-sub').data([0]).join('text')
-        .attr('class', 'center-label center-sub')
-        .attr('font-size', outerR * 0.1).attr('fill', '#6b7280').attr('dy', '1.1em');
+      slicesGroup.selectAll('path.bg-ring').data([1]).join('path')
+        .attr('class', 'bg-ring').attr('fill', '#f3f4f6')
+        .attr('d', arcGen({ startAngle: -Math.PI / 2, endAngle: 3 * Math.PI / 2 }));
+
+      centerGroup.selectAll('text.center-total-label').data([0]).join('text')
+        .attr('class', 'center-label center-total-label')
+        .attr('font-size', outerR * 0.16).attr('dy', '-0.5em');
+      centerGroup.selectAll('text.center-total-value').data([0]).join('text')
+        .attr('class', 'center-label center-total-value')
+        .attr('font-size', outerR * 0.34).attr('dy', '0.75em');
+    }
+
+    // Assigns pie angles (clockwise from the top) to each scope entry, in data order.
+    function computeArcs() {
+      const entries = scopeEntries();
+      const total = d3.sum(entries, (d) => d.emissions) || 1;
+      let angle = -Math.PI / 2;
+      return entries.map((entry) => {
+        const sweep = (entry.emissions / total) * 2 * Math.PI;
+        const arc = { ...entry, startAngle: angle, endAngle: angle + sweep };
+        angle += sweep;
+        return arc;
+      });
+    }
+
+    // Places each leader-line label outside the ring, keeping labels on the same
+    // side at least LABEL_MIN_GAP apart so adjacent small slices don't overlap.
+    function placeLeaders(arcs) {
+      const bendR = outerR + 8;
+      const placed = arcs.filter((d) => d.emissions > 0).map((d) => {
+        const mid = (d.startAngle + d.endAngle) / 2;
+        const sin = Math.sin(mid), cos = -Math.cos(mid);
+        return { d, isRight: sin >= 0, outer: [sin * outerR, cos * outerR], bendY: cos * bendR, sin };
+      });
+      ['left', 'right'].forEach((side) => {
+        const group = placed.filter((p) => (side === 'right') === p.isRight).sort((a, b) => a.bendY - b.bendY);
+        let prevY = -Infinity;
+        group.forEach((p) => {
+          p.labelY = Math.max(p.bendY, prevY + LABEL_MIN_GAP);
+          prevY = p.labelY;
+        });
+      });
+      return placed;
     }
 
     let counterToken = 0;
-    function animateCounter(textEl, from, to, duration, suffix = '') {
+    function animateTotal(textEl, to, duration) {
       const token = ++counterToken;
       const start = performance.now();
       function frame(now) {
         if (token !== counterToken) return; // superseded by a newer render
         const progress = Math.min((now - start) / duration, 1);
-        const val = Math.round(from + (to - from) * progress);
-        textEl.text(`${val}${suffix}`);
+        const val = to * progress;
+        textEl.text(val.toFixed(2));
         if (progress < 1) requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
@@ -194,49 +371,74 @@
     // `phase` alone, so jumping to any phase (forwards or backwards) always
     // yields a fully-consistent view — no stale state left over from a
     // previously-rendered phase.
-    function renderRing() {
-      if (!individualGroup) return;
-      individualGroup.selectAll('path.sector-arc').remove();
-      combinedGroup.selectAll('path.bg-ring').data([1]).join('path')
-        .attr('class', 'bg-ring').attr('fill', '#f3f4f6')
-        .attr('d', combArcGen({startAngle: -Math.PI / 2, endAngle: 3 * Math.PI / 2}));
-    }
+    function renderDonutForPhase(phase, animate) {
+      const valueEl = centerGroup.select('.center-total-value');
+      const labelEl = centerGroup.select('.center-total-label');
 
-    function renderCenterForPhase(phase, animate) {
-      const valueEl = centerGroup.select('.center-value');
-      const subEl = centerGroup.select('.center-sub');
       if (phase < 2) {
         counterToken++; // invalidate any in-flight counter
-        combinedGroup.selectAll('path.combined-arc').remove();
+        slicesGroup.selectAll('path.scope-arc').classed('revealed', false).remove();
+        leaderGroup.selectAll('*').classed('revealed', false).remove();
         valueEl.classed('revealed', false);
-        subEl.classed('revealed', false);
+        labelEl.classed('revealed', false);
         return;
       }
-      const dur = animate ? 2000 : 0;
-      const share = scope3Entry()?.share ?? 0;
-      const endAngle = (share / 100) * 2 * Math.PI;
 
-      combinedGroup.selectAll('path.combined-arc').data([{startAngle: -Math.PI/2, endAngle: -Math.PI/2}])
-        .join('path').attr('class', 'combined-arc').attr('fill', ORANGE)
-        // Set the resting (fully-revealed) shape synchronously first so the arc is
-        // always visually correct even if the transition below never gets to tick.
-        .attr('d', combArcGen({startAngle: -Math.PI/2, endAngle: -Math.PI/2 + endAngle}))
-        .call(sel => sel.transition().duration(dur).ease(d3.easeCubicInOut)
-          .attrTween('d', function() {
-            const i = d3.interpolate(this.__angle__ || -Math.PI/2, -Math.PI/2 + endAngle);
-            return t => { this.__angle__ = i(t); return combArcGen({startAngle: -Math.PI/2, endAngle: i(t)}); };
-          }));
+      const arcs = computeArcs();
+      const totalMillions = (d3.sum(arcs, (d) => d.emissions) || 0) / 1000;
+      const nameKeys = scopeNameKeys();
 
-      subEl.text(T('donutCenterShareLabel')).attr('fill', '#6b7280').classed('revealed', true);
+      slicesGroup.selectAll('path.scope-arc').data(arcs, (d) => d.id).join('path')
+        .attr('class', 'scope-arc')
+        .attr('fill', (d) => d.color)
+        .attr('d', arcGen)
+        .each(function (d, i) {
+          requestAnimationFrame(() => setTimeout(() => d3.select(this).classed('revealed', true), i * 120));
+        });
+
+      const leaders = placeLeaders(arcs);
+      const lines = leaderGroup.selectAll('path.leader-line').data(leaders, (p) => p.d.id);
+      lines.exit().remove();
+      lines.enter().append('path').attr('class', 'leader-line')
+        .merge(lines)
+        .attr('d', (p) => {
+          const armX = p.isRight ? outerR + 34 : -(outerR + 34);
+          return `M${p.outer[0]},${p.outer[1]} L${p.sin * (outerR + 8)},${p.labelY} L${armX},${p.labelY}`;
+        })
+        .each(function (p, i) {
+          requestAnimationFrame(() => setTimeout(() => d3.select(this).classed('revealed', true), 200 + i * 120));
+        });
+
+      const labels = leaderGroup.selectAll('text.leader-label').data(leaders, (p) => p.d.id);
+      labels.exit().remove();
+      const labelsEnter = labels.enter().append('text').attr('class', 'leader-label');
+      labelsEnter.append('tspan').attr('class', 'name').attr('x', 0).attr('dy', '-0.2em');
+      labelsEnter.append('tspan').attr('class', 'value').attr('dy', '1.3em');
+      labelsEnter.append('tspan').attr('class', 'percent').attr('dy', '1.35em');
+      labelsEnter.merge(labels)
+        .attr('text-anchor', (p) => (p.isRight ? 'start' : 'end'))
+        .attr('x', (p) => (p.isRight ? outerR + 40 : -(outerR + 40)))
+        .attr('y', (p) => p.labelY)
+        .each(function (p, i) {
+          const sel = d3.select(this);
+          sel.select('tspan.name').attr('x', p.isRight ? outerR + 40 : -(outerR + 40)).text(T(nameKeys[p.d.id] || p.d.name));
+          sel.select('tspan.value').attr('x', p.isRight ? outerR + 40 : -(outerR + 40))
+            .text(`${(p.d.emissions / 1000).toFixed(2)}t`);
+          sel.select('tspan.percent').attr('x', p.isRight ? outerR + 40 : -(outerR + 40))
+            .text(`${p.d.share}%`);
+          requestAnimationFrame(() => setTimeout(() => sel.classed('revealed', true), 200 + i * 120));
+        });
+
+      labelEl.text(T('donutCenterShareLabel')).classed('revealed', true);
       const alreadyRevealed = valueEl.classed('revealed');
       if (animate && !alreadyRevealed) {
         counterToken++;
-        animateCounter(valueEl, 0, share, dur * 0.9, '%');
+        animateTotal(valueEl, totalMillions, 1600);
       } else {
         counterToken++; // invalidate any in-flight counter, show final value directly
-        valueEl.text(`${share}%`);
+        valueEl.text(totalMillions.toFixed(2));
       }
-      valueEl.attr('fill', ORANGE).classed('revealed', true);
+      valueEl.classed('revealed', true);
     }
 
     function renderHeadlineForPhase(phase) {
@@ -261,6 +463,7 @@
       if (phase >= 3) {
         bodyText.style.display = '';
         requestAnimationFrame(() => bodyText.classList.add('visible'));
+        showExploreBtn();
       } else {
         bodyText.classList.remove('visible'); bodyText.style.display = 'none';
       }
@@ -268,8 +471,7 @@
 
     function transitionToPhase(phase, animate = true) {
       currentPhase = phase;
-      renderRing();
-      renderCenterForPhase(phase, animate);
+      renderDonutForPhase(phase, animate);
       renderHeadlineForPhase(phase);
       renderBodyForPhase(phase);
     }
@@ -295,9 +497,44 @@
 
     window.addEventListener('dive-lang', () => {
       if (!chartData) return;
-      if (currentPhase >= 2) centerGroup.select('.center-sub').text(T('donutCenterShareLabel'));
+      if (currentPhase >= 2) renderDonutForPhase(currentPhase, false);
     });
     window.addEventListener('resize', () => { if (!chartData) return; setupDonut(); transitionToPhase(currentPhase, false); });
+
+    let exploreBtnShown = false;
+    function showExploreBtn() {
+      if (exploreBtnShown) return;
+      exploreBtnShown = true;
+      document.getElementById('explore-hint').classList.add('visible');
+      document.getElementById('explore-btn').classList.add('visible');
+    }
+
+    const exploreBtn = document.getElementById('explore-btn');
+    const scopeTrendModal = document.getElementById('scope-trend-modal');
+    const scopeTrendIframe = document.getElementById('scope-trend-iframe');
+    const SCOPE_TREND_URL = new URL('scope-trend-facts.html', window.location.href).toString();
+
+    // Wall-clock pageFadeOut must stay paused whenever playback is paused, not just while the modal is open.
+    let isPlaying = false;
+    function updateFadePause() {
+      document.body.classList.toggle('explore-open', !isPlaying || scopeTrendModal.classList.contains('open'));
+    }
+    updateFadePause();
+
+    function openScopeTrendModal() {
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'sector-donut' }, '*');
+      if (!scopeTrendIframe.getAttribute('src')) scopeTrendIframe.src = SCOPE_TREND_URL;
+      scopeTrendModal.classList.add('open');
+      updateFadePause();
+    }
+    function closeScopeTrendModal() {
+      scopeTrendModal.classList.remove('open');
+      updateFadePause();
+    }
+    exploreBtn.addEventListener('click', openScopeTrendModal);
+    document.getElementById('scope-trend-modal-close').addEventListener('click', closeScopeTrendModal);
+    scopeTrendModal.addEventListener('click', (e) => { if (e.target === scopeTrendModal) closeScopeTrendModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeScopeTrendModal(); });
 
     window.addEventListener('message', event => {
       const p = event.data;
@@ -308,6 +545,10 @@
         lastNarrativeTimeMs = p.time;
         if (!chartData) { bootstrapStandalone(); return; }
         applyState(lastNarrativeState);
+      } else if (p.type === 'DIVE_PLAYBACK') {
+        isPlaying = !!p.isPlaying;
+        if (isPlaying) closeScopeTrendModal();
+        updateFadePause();
       }
     });
 

@@ -20,7 +20,7 @@ The video plays for **77 seconds** across 11 scenes, each using a different tool
 | 6 | Lower Priority | `tools/key-message-priority.html` | 32.2–37.2s | Decarbonisation has become a lower priority for public bodies |
 | 7 | Balance of Pressures | `tools/balance-scale.html` | 37.2–44.2s | Progress (understanding, reporting, plans) weighed against pressures (financial, political, delivery reticence) |
 | 8 | Measure & Deliver | `tools/measure-deliver-message.html` | 44.2–49.2s | Progress is difficult to measure and deliver |
-| 9 | In Their Words | `tools/quotes.html` | 49.2–61.2s | Four verbatim quotes from the review |
+| 9 | Emissions Per Body | `tools/emissions-per-body.html` | 49.2–61.2s | Emissions per reporting body fell sharply after 2021, then stalled and crept back up — decarbonisation losing priority |
 | 10 | Supply Chain | `tools/sector-donut.html` | 61.2–69.2s | D3 donut chart: Scope 3 accounts for ~84% of emissions — far more than Scopes 1 and 2 combined — and sits largely outside public bodies' direct control |
 | 11 | Finance & Skills | `tools/finance-barriers.html` | 69.2–77.2s | Two rising bars: £2.8bn estimated cost to decarbonise Welsh council buildings alone, against £228m funding provided since the last report (2022–23 to 2025–26) — over 12× the gap |
 
@@ -57,7 +57,7 @@ welsh_net_zero/
     ├── key-message-priority.html  — Scene 6
     ├── balance-scale.html         — Scene 7
     ├── measure-deliver-message.html — Scene 8
-    ├── quotes.html                — Scene 9
+    ├── emissions-per-body.html    — Scene 9 (D3 line chart, opens emissions-trend.html breakdown)
     ├── sector-donut.html          — Scene 10 (D3 donut chart)
     └── finance-barriers.html      — Scene 11 (rising bar chart)
 ```
@@ -92,7 +92,7 @@ Scene 10 (`sector-donut`) uses a simple `phase` field instead, stepping through 
 
 ### Standalone Mode
 
-Every tool can be opened directly (e.g. `welsh_net_zero/tools/quotes.html`) without the DIVE player — it renders its default English state and the EN/CY toggle still works locally.
+Every tool can be opened directly (e.g. `welsh_net_zero/tools/emissions-per-body.html`) without the DIVE player — it renders its default English state and the EN/CY toggle still works locally.
 
 ---
 

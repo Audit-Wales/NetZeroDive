@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Emissions per Reporting Body</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="dive-lang.js"></script>
   <style>
     html, body {
       margin: 0; width: 100%; height: 100%; overflow: hidden;
@@ -57,6 +58,157 @@
       font-family: Arial, sans-serif;
     }
     #panel-chart { width: 100%; height: 100%; }
+
+    /* ── Explore breakdown button (centred above the chart) ── */
+    .explore-wrap {
+      position: absolute;
+      left: 50%;
+      top: 64px;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 15;
+    }
+    .explore-hint {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.5s ease, transform 0.3s ease;
+    }
+    .explore-hint.visible { opacity: 1; transform: translateY(0); }
+    #explore-btn {
+      background: #F4633A;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: Arial, "Segoe UI", sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(244,99,58,0.35);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-10px);
+      transition: opacity 0.5s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease;
+    }
+    #explore-btn.visible {
+      opacity: 1; pointer-events: auto; transform: translateY(0);
+      animation: exploreBtnPulse 1.7s ease-in-out 0.6s 3;
+    }
+    #explore-btn:hover { background: #e0522e; transform: scale(1.05); }
+    #explore-btn:active { transform: scale(0.97); }
+    #explore-btn .arrow { display: inline-block; animation: exploreArrowNudge 1.7s ease-in-out 0.6s 3; }
+    @keyframes exploreBtnPulse {
+      0%, 100% { box-shadow: 0 4px 16px rgba(244,99,58,0.35), 0 0 0 0 rgba(244,99,58,0.45); }
+      50% { box-shadow: 0 4px 16px rgba(244,99,58,0.35), 0 0 0 14px rgba(244,99,58,0); }
+    }
+    @keyframes exploreArrowNudge {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(3px, -3px); }
+    }
+
+    /* ── Source breakdown pop-out modal ── */
+    #breakdown-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #breakdown-modal.open { opacity: 1; pointer-events: auto; }
+    #breakdown-modal-inner {
+      position: relative;
+      width: min(92vw, 1100px);
+      height: min(88vh, 680px);
+      background: #f9fafb;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      transform: scale(0.94);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #breakdown-modal.open #breakdown-modal-inner { transform: scale(1); }
+    #breakdown-modal iframe { width: 100%; height: 100%; border: none; display: block; }
+    #breakdown-modal-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      width: 32px; height: 32px;
+      background: rgba(17,24,39,0.55);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease;
+      z-index: 10;
+    }
+    #breakdown-modal-close:hover { background: rgba(17,24,39,0.85); }
+
+    /* ── 67-body / 18% increase fact callout (centred, above x-axis) ── */
+    .fact-callout {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(96px, 18vh, 148px);
+      transform: translateX(-50%) translateY(16px);
+      max-width: 380px;
+      width: max-content;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 12;
+    }
+    .fact-callout.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .fact-callout-caption {
+      font-size: 12.5px;
+      color: #6b7280;
+      line-height: 1.45;
+      margin: 0 0 6px 0;
+    }
+    .fact-callout-num-row {
+      display: flex; align-items: baseline; justify-content: center; gap: 4px;
+    }
+    .fact-callout-arrow {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800;
+      color: #F4633A;
+      display: inline-block;
+      animation: factArrowRise 1.4s ease-in-out 0.3s 3;
+    }
+    .fact-callout-num {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      color: #F4633A;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .fact-callout-sub {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin: 4px 0 0 0;
+    }
+    @keyframes factArrowRise {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
   </style>
 </head>
 <body>
@@ -66,6 +218,29 @@
     <button id="panel-close" onclick="hidePanel()" title="Close">&times;</button>
     <div id="panel-title"></div>
     <div id="panel-chart"></div>
+  </div>
+
+  <div class="explore-wrap" id="explore-wrap">
+    <div class="explore-hint" id="explore-hint" data-i18n="exploreBtnHint">Pause video to explore</div>
+    <button id="explore-btn" aria-label="See the breakdown by source">
+      <span data-i18n="emissionsPerBodyExploreBtn">See the breakdown by source</span> <span class="arrow" aria-hidden="true">&#8599;</span>
+    </button>
+  </div>
+
+  <div id="breakdown-modal" role="dialog" aria-modal="true" aria-label="Welsh public sector emissions by source">
+    <div id="breakdown-modal-inner">
+      <button id="breakdown-modal-close" aria-label="Close">&times;</button>
+      <iframe id="breakdown-iframe" src="" title="Welsh public sector emissions by source"></iframe>
+    </div>
+  </div>
+
+  <div class="fact-callout" id="fact-callout">
+    <p class="fact-callout-caption" data-i18n="perBodyFactCaption">Analysing data for only the 67 public bodies that reported in both 2021-22 and 2024-25 — there has been an</p>
+    <div class="fact-callout-num-row">
+      <span class="fact-callout-arrow" aria-hidden="true">&#8599;</span>
+      <span class="fact-callout-num" id="fact-callout-num">0%</span>
+    </div>
+    <p class="fact-callout-sub" data-i18n="perBodyFactSub">increase in reported carbon emissions</p>
   </div>
 
   <script>
@@ -159,9 +334,9 @@
         .attr('x', margin.left).attr('y', margin.top - 8)
         .text('ktCO\u2082e per body');
       svg.append('text').attr('class','title').attr('x', margin.left).attr('y', 30)
-        .text('Welsh public sector: emissions per reporting body, 2021\u20132025');
-      svg.append('text').attr('class','subtitle').attr('x', margin.left).attr('y', 48)
-        .text('Total emissions divided by number of reporting bodies each year.');
+        .text(diveT('emissionsPerBodyTitle'));
+      svg.append('text').attr('class','subtitle desc-subtitle').attr('x', margin.left).attr('y', 48)
+        .text(diveT('emissionsPerBodySubtitle'));
 
       // Hover layer
       svg.append('rect').attr('x', margin.left).attr('y', margin.top)
@@ -231,7 +406,7 @@
 
       // Annotation: average line at 2021 peak
       annotG.selectAll('*').remove();
-      if (revealYear >= 2021 && revealYear >= 2025) {
+      if (revealYear >= 2025) {
         const avgY = yScale(48.5);
         annotG.append('line').attr('class','annotation-line')
           .attr('x1', 0).attr('x2', xScale.range()[1])
@@ -240,6 +415,8 @@
           .attr('x', xScale.range()[1] - 6).attr('y', avgY - 6)
           .attr('text-anchor', 'end')
           .text('avg \u224848.5 ktCO\u2082e per body');
+        showExploreBtn();
+        showFactCallout();
       }
     }
 
@@ -370,10 +547,63 @@
       chartData = data;
       setupChart();
       render(false);
+      window.parent?.postMessage({ type: 'DIVE_READY', source: 'emissions-per-body' }, '*');
     }
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') hidePanel(); });
+    let exploreBtnShown = false;
+    function showExploreBtn() {
+      if (exploreBtnShown) return;
+      exploreBtnShown = true;
+      document.getElementById('explore-hint').classList.add('visible');
+      document.getElementById('explore-btn').classList.add('visible');
+    }
+
+    function animateNum(el, from, target, duration) {
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(from + (target - from) * ease) + '%';
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = target + '%';
+      };
+      requestAnimationFrame(tick);
+    }
+
+    const FACT_TARGET = 18;
+    let factCalloutShown = false;
+    function showFactCallout() {
+      if (factCalloutShown) return;
+      factCalloutShown = true;
+      document.getElementById('fact-callout').classList.add('visible');
+      animateNum(document.getElementById('fact-callout-num'), 0, FACT_TARGET, 1200);
+    }
+
+    const exploreBtn = document.getElementById('explore-btn');
+    const breakdownModal = document.getElementById('breakdown-modal');
+    const breakdownIframe = document.getElementById('breakdown-iframe');
+    const BREAKDOWN_URL = new URL('emissions-trend.html', window.location.href).toString();
+
+    function openBreakdownModal() {
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'emissions-per-body' }, '*');
+      if (!breakdownIframe.getAttribute('src')) breakdownIframe.src = BREAKDOWN_URL;
+      breakdownModal.classList.add('open');
+    }
+    function closeBreakdownModal() {
+      breakdownModal.classList.remove('open');
+    }
+
+    exploreBtn.addEventListener('click', openBreakdownModal);
+    document.getElementById('breakdown-modal-close').addEventListener('click', closeBreakdownModal);
+    breakdownModal.addEventListener('click', (e) => { if (e.target === breakdownModal) closeBreakdownModal(); });
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { hidePanel(); closeBreakdownModal(); } });
     window.addEventListener('resize', () => { if (!chartData) return; setupChart(); render(false); });
+    window.addEventListener('dive-lang', () => {
+      if (!chartData) return;
+      svg.select('text.title').text(diveT('emissionsPerBodyTitle'));
+      svg.select('text.desc-subtitle').text(diveT('emissionsPerBodySubtitle'));
+    });
     window.addEventListener('message', event => {
       const p = event.data;
       if (!p || !p.type) return;
@@ -383,6 +613,8 @@
         lastNarrativeTimeMs = (typeof p.time === 'number' && isFinite(p.time)) ? p.time : currentTimelineTimeMs;
         if (!chartData) { bootstrapStandalone(); return; }
         applyState(lastNarrativeState, lastNarrativeTimeMs);
+      } else if (p.type === 'DIVE_PLAYBACK') {
+        if (p.isPlaying) closeBreakdownModal();
       }
     });
     window.setTimeout(() => { if (!chartData) bootstrapStandalone(); }, 180);

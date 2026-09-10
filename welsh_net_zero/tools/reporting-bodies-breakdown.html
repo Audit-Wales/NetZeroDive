@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporting bodies by organisation type</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #f9fafb;
+      font-family: Arial, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+    #chart { width: 100%; height: 100%; position: relative; }
+    .title    { font-size: 19px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 13px; fill: #6b7280; }
+    .axis text { fill: #6b7280; font-size: 12px; }
+    .axis path, .axis line { stroke: #d1d5db; }
+    .grid line { stroke: #e5e7eb; stroke-dasharray: 3 4; }
+    .grid path { stroke: none; }
+    .segment { stroke: #f9fafb; stroke-width: 1.5; }
+    .total-label { font-size: 15px; font-weight: 700; fill: #111827; text-anchor: middle; }
+    .bar-year-label { font-size: 12px; fill: #6b7280; text-anchor: middle; }
+    .leader-line { fill: none; stroke: #9ca3af; stroke-width: 1.25; }
+    .leader-label { font-size: 12.5px; fill: #374151; }
+    .leader-count { font-weight: 700; fill: #111827; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+
+  <script>
+    const root = d3.select('#chart');
+    const margin = { top: 66, right: 210, bottom: 40, left: 56 };
+
+    // Bottom-to-top stacking order, matching the source report's legend.
+    const CATEGORIES = [
+      { key: 'councils', label: 'Councils', color: '#F4633A' },
+      { key: 'otherPsb', label: 'Other public sector bodies', color: '#4b5563' },
+      { key: 'health', label: 'Health bodies', color: '#14b8a6' },
+      { key: 'colleges', label: 'Colleges', color: '#7c3aed' },
+      { key: 'universities', label: 'Universities', color: '#f4a29a' },
+      { key: 'fireRescue', label: 'Fire and rescue authorities', color: '#9ca3af' },
+      { key: 'nationalParks', label: 'National parks', color: '#fbbf24' },
+      { key: 'welshGov', label: 'Welsh Government', color: '#60a5fa' },
+      { key: 'cjc', label: 'Corporate Joint Committees', color: '#34d399' },
+    ];
+    const YEARS = [2022, 2025];
+    const DEFAULT_DATA_URL = new URL('../data/welsh-net-zero.json', window.location.href).toString();
+
+    function standaloneDataUrl() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('data') || p.get('dataUrl');
+      return v ? new URL(v, window.location.href).toString() : DEFAULT_DATA_URL;
+    }
+
+    function stackFor(record) {
+      let y0 = 0;
+      return CATEGORIES.map((cat) => {
+        const value = record.categories[cat.key] || 0;
+        const seg = { ...cat, value, y0, y1: y0 + value };
+        y0 += value;
+        return seg;
+      });
+    }
+
+    function render(data) {
+      const records = YEARS.map((year) => data.reportingBodiesByType.find((d) => d.year === year));
+      root.selectAll('*').remove();
+
+      const W = root.node().clientWidth || 960;
+      const H = root.node().clientHeight || 560;
+      const iW = W - margin.left - margin.right;
+      const iH = H - margin.top - margin.bottom;
+
+      const svg = root.append('svg').attr('width', W).attr('height', H)
+        .attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+
+      svg.append('text').attr('class', 'title').attr('x', margin.left).attr('y', 26)
+        .text('Who the reporting bodies are');
+      svg.append('text').attr('class', 'subtitle').attr('x', margin.left).attr('y', 46)
+        .text('By organisation type, 2021-22 vs 2024-25');
+
+      const stacks = records.map(stackFor);
+      const maxTotal = d3.max(stacks, (s) => s[s.length - 1].y1);
+
+      const xScale = d3.scaleBand().domain(YEARS).range([0, iW]).padding(0.55);
+      const yScale = d3.scaleLinear().domain([0, Math.ceil((maxTotal + 5) / 10) * 10]).range([iH, 0]);
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      g.append('g').attr('class', 'grid')
+        .call(d3.axisLeft(yScale).ticks(6).tickSize(-iW).tickFormat(() => ''));
+      g.append('g').attr('class', 'axis')
+        .call(d3.axisLeft(yScale).ticks(6).tickFormat(d3.format('d')));
+
+      records.forEach((record, i) => {
+        const x = xScale(record.year);
+        const barW = xScale.bandwidth();
+        const stack = stacks[i];
+
+        g.selectAll(`.segment-${record.year}`)
+          .data(stack)
+          .join('rect')
+          .attr('class', 'segment')
+          .attr('x', x)
+          .attr('width', barW)
+          .attr('y', (d) => yScale(d.y1))
+          .attr('height', (d) => Math.max(0, yScale(d.y0) - yScale(d.y1)))
+          .attr('fill', (d) => d.color);
+
+        const total = stack[stack.length - 1].y1;
+        g.append('text').attr('class', 'total-label')
+          .attr('x', x + barW / 2).attr('y', yScale(total) - 10)
+          .text(total);
+
+        g.append('text').attr('class', 'bar-year-label')
+          .attr('x', x + barW / 2).attr('y', iH + 24)
+          .text(record.fyLabel);
+
+        // Leader-line labels only on the most recent year, right of the chart.
+        if (i === records.length - 1) {
+          const segsTopDown = [...stack].reverse().filter((d) => d.value > 0);
+          const minGap = 20;
+          let prevY = -Infinity;
+          const placed = segsTopDown.map((seg) => {
+            const midY = yScale((seg.y0 + seg.y1) / 2);
+            const labelY = Math.max(midY, prevY + minGap);
+            prevY = labelY;
+            return { seg, midY, labelY };
+          });
+
+          const labelX = x + barW + 26;
+          placed.forEach(({ seg, midY, labelY }) => {
+            g.append('path').attr('class', 'leader-line')
+              .attr('d', `M${x + barW},${midY} H${labelX - 8} L${labelX},${labelY}`);
+
+            const text = g.append('text').attr('class', 'leader-label')
+              .attr('x', labelX + 4).attr('y', labelY).attr('dominant-baseline', 'middle');
+            text.append('tspan').attr('class', 'leader-count').text(seg.value + ' ');
+            text.append('tspan').text(seg.label);
+          });
+        }
+      });
+    }
+
+    let chartData = null;
+
+    async function bootstrap() {
+      try {
+        if (!chartData) {
+          const res = await fetch(standaloneDataUrl());
+          if (!res.ok) throw new Error(String(res.status));
+          chartData = await res.json();
+        }
+        render(chartData);
+      } catch (e) {
+        console.error('Reporting-bodies-breakdown failed to load', e);
+        root.append('div').style('position', 'absolute').style('inset', '0')
+          .style('display', 'grid').style('place-items', 'center')
+          .style('font-size', '14px').style('color', '#374151').text('Unable to load data.');
+      }
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => bootstrap(), 120);
+    });
+
+    bootstrap();
+  </script>
+</body>
+</html>

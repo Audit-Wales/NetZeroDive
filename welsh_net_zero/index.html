@@ -65,6 +65,36 @@
         font-size: 0.84rem;
       }
 
+      .direct-links-label {
+        margin-top: 18px;
+        margin-bottom: 4px;
+      }
+
+      .direct-links {
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .direct-links li a {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+
+      .direct-links li a:hover {
+        background: rgba(52, 211, 153, 0.16);
+        border-color: rgba(52, 211, 153, 0.4);
+      }
+
       a { color: var(--accent); }
 
       @media (max-width: 900px) {
@@ -86,7 +116,22 @@
     <main>
       <dive-video src="story.json"></dive-video>
       <div class="hint">Play to watch the scripted narrative. Pause anytime to explore.</div>
-      <p>Open this section directly: <a href="tools/narrative-timeline.html" target="_blank">Context &amp; Timeline</a></p>
+      <p class="direct-links-label">Open a section directly:</p>
+      <ul class="direct-links">
+        <li><a href="tools/title-card.html" target="_blank">Title</a></li>
+        <li><a href="tools/key-message.html" target="_blank">Key Message</a></li>
+        <li><a href="tools/narrative-timeline.html" target="_blank">Context &amp; Timeline</a></li>
+        <li><a href="tools/action-message.html" target="_blank">Action Taken</a></li>
+        <li><a href="tools/reporting-bodies-growth.html" target="_blank">Reporting Bodies</a></li>
+        <li><a href="tools/key-message-priority.html" target="_blank">Lower Priority</a></li>
+        <li><a href="tools/balance-scale.html" target="_blank">Balance of Pressures</a></li>
+        <li><a href="tools/emissions-per-body.html" target="_blank">Emissions Per Body</a></li>
+        <li><a href="tools/measure-deliver-message.html" target="_blank">Measure &amp; Deliver</a></li>
+        <li><a href="tools/sector-donut.html" target="_blank">Supply Chain</a></li>
+        <li><a href="tools/finance-barriers.html" target="_blank">Finance &amp; Skills</a></li>
+        <li><a href="tools/what-can-be-done.html" target="_blank">What Can Be Done</a></li>
+        <li><a href="tools/recommendations.html" target="_blank">Recommendations</a></li>
+      </ul>
       <p>Or open the built DIVE app root at <a href="/">/</a>.</p>
     </main>
 

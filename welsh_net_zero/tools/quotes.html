@@ -15,11 +15,15 @@
       color: #1f2937;
     }
     #stage {
-      position: absolute; inset: 0;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 140px;
       display: flex; flex-direction: column; justify-content: center;
-      gap: clamp(30px, 4.6vh, 52px);
-      padding: 4% 7%;
+      gap: clamp(22px, 3.4vh, 40px);
+      padding: 4% 3%;
       box-sizing: border-box;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 4px;
     }
     .kicker {
       font-size: clamp(0.95rem, 1.9vw, 1.25rem);
@@ -28,7 +32,7 @@
       text-transform: uppercase;
       color: #78350f;
       text-align: center;
-      margin-bottom: 4px;
+      margin: 0;
       opacity: 0;
       animation: fadeIn 0.5s ease 0.1s forwards;
     }
@@ -39,6 +43,14 @@
       margin: 10px auto 0;
       background: #F4633A;
       border-radius: 2px;
+    }
+    .subtitle {
+      margin: 12px 0 0;
+      font-size: clamp(1.15rem, 2.1vw, 1.5rem);
+      font-weight: 500;
+      color: #6b7280;
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.25s forwards;
     }
     .bubble-row {
       display: flex;
@@ -83,7 +95,7 @@
     }
 
     .bubble {
-      max-width: 72%;
+      max-width: 58%;
       background: #ffffff;
       border-radius: 24px;
       padding: 26px 34px;
@@ -134,7 +146,10 @@
 </head>
 <body>
   <div id="stage">
-    <div class="kicker" data-i18n="quotesKicker">In their words</div>
+    <div class="header">
+      <div class="kicker" data-i18n="quotesKicker">In their words</div>
+      <p class="subtitle" data-i18n="quotesSubtitle">A sample of quotes about leadership and prioritisation.</p>
+    </div>
     <div class="bubble-row left">
       <div class="quote-badge" aria-hidden="true">&ldquo;</div>
       <div class="bubble">

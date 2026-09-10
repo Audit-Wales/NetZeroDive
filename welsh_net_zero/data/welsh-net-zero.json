@@ -7,7 +7,7 @@
       2025
     ],
     "netZeroTarget": 2030,
-    "totalEmissions2025": 3958,
+    "totalEmissions2025": 3960,
     "reportingBodies": 82
   },
   "sectors": [
@@ -695,18 +695,25 @@
   ],
   "emissionsByScope2025": [
     {
+      "id": "scope1",
+      "name": "Scope 1",
+      "share": 12,
+      "emissions": 470,
+      "color": "#515254"
+    },
+    {
+      "id": "scope2",
+      "name": "Scope 2",
+      "share": 4,
+      "emissions": 170,
+      "color": "#c4cdd6"
+    },
+    {
       "id": "scope3",
       "name": "Scope 3",
       "share": 84,
-      "emissions": 3325,
+      "emissions": 3320,
       "color": "#F4633A"
-    },
-    {
-      "id": "scope1_2",
-      "name": "Scope 1 & 2",
-      "share": 16,
-      "emissions": 633,
-      "color": "#515254"
     }
   ],
   "emissionsPerBody": [
@@ -739,6 +746,38 @@
       "bodies": 82,
       "totalEmissions": 3958,
       "perBody": 48.3
+    }
+  ],
+  "reportingBodiesByType": [
+    {
+      "year": 2020,
+      "fyLabel": "2019-20",
+      "categories": { "councils": 22, "otherPsb": 8, "health": 4, "colleges": 1, "universities": 5, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 0 }
+    },
+    {
+      "year": 2021,
+      "fyLabel": "2020-21",
+      "categories": { "councils": 22, "otherPsb": 11, "health": 9, "colleges": 1, "universities": 4, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 0 }
+    },
+    {
+      "year": 2022,
+      "fyLabel": "2021-22",
+      "categories": { "councils": 22, "otherPsb": 18, "health": 13, "colleges": 1, "universities": 8, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 0 }
+    },
+    {
+      "year": 2023,
+      "fyLabel": "2022-23",
+      "categories": { "councils": 22, "otherPsb": 19, "health": 13, "colleges": 2, "universities": 8, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 0 }
+    },
+    {
+      "year": 2024,
+      "fyLabel": "2023-24",
+      "categories": { "councils": 22, "otherPsb": 18, "health": 12, "colleges": 10, "universities": 8, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 0 }
+    },
+    {
+      "year": 2025,
+      "fyLabel": "2024-25",
+      "categories": { "councils": 22, "otherPsb": 18, "health": 13, "colleges": 12, "universities": 8, "fireRescue": 3, "nationalParks": 3, "welshGov": 1, "cjc": 1 }
     }
   ],
   "spendIntensity": [
