@@ -37,8 +37,8 @@
       animation: blobDrift ease-in-out infinite alternate;
     }
     .blob-1 { width: 220px; height: 220px; left: -60px; top: 8%; background: #F4633A; animation-duration: 9s; }
-    .blob-2 { width: 260px; height: 260px; right: -80px; top: 46%; background: #0d9488; animation-duration: 11s; animation-delay: 1s; }
-    .blob-3 { width: 180px; height: 180px; left: 18%; bottom: -70px; background: #7c3aed; animation-duration: 10s; animation-delay: 0.5s; }
+    .blob-2 { width: 260px; height: 260px; right: -80px; top: 46%; background: #28A197; animation-duration: 11s; animation-delay: 1s; }
+    .blob-3 { width: 180px; height: 180px; left: 18%; bottom: -70px; background: #6B007B; animation-duration: 10s; animation-delay: 0.5s; }
     @keyframes blobDrift {
       from { transform: translate(0, 0) scale(1); }
       to   { transform: translate(26px, -22px) scale(1.15); }
@@ -60,7 +60,7 @@
       margin: 0.15em 0 0;
       text-align: center;
       opacity: 0;
-      background: linear-gradient(90deg, #F4633A, #0d9488, #7c3aed, #F4633A);
+      background: linear-gradient(90deg, #F4633A, #28A197, #F4633A);
       background-size: 300% auto;
       -webkit-background-clip: text;
       background-clip: text;
@@ -70,7 +70,7 @@
     .underline {
       width: 84px; height: 5px; border-radius: 3px;
       margin-bottom: 0.3em;
-      background: linear-gradient(90deg, #F4633A, #0d9488, #7c3aed);
+      background: linear-gradient(90deg, #F4633A, #6B007B);
       transform: scaleX(0);
       opacity: 0;
       animation: barGrow 0.5s ease 0.85s forwards, pulseRing 0.9s ease 5.85s;
@@ -122,15 +122,15 @@
       animation: cardIn 0.75s cubic-bezier(0.34,1.56,0.64,1) 1.0s forwards, cardPop 0.7s ease 5.75s;
     }
     .card:nth-child(2) {
-      --accent: #0d9488; --tint: rgba(13,148,136,0.10); --tilt: 2.6deg; --fromX: 60px;
+      --accent: #28A197; --tint: rgba(40,161,151,0.10); --tilt: 2.6deg; --fromX: 60px;
       animation: cardIn 0.75s cubic-bezier(0.34,1.56,0.64,1) 2.05s forwards, cardPop 0.7s ease 5.75s;
     }
     .card:nth-child(3) {
-      --accent: #7c3aed; --tint: rgba(124,58,237,0.10); --tilt: -2.4deg; --fromX: -60px;
+      --accent: #6B007B; --tint: rgba(107,0,123,0.10); --tilt: -2.4deg; --fromX: -60px;
       animation: cardIn 0.75s cubic-bezier(0.34,1.56,0.64,1) 3.1s forwards, cardPop 0.7s ease 5.75s;
     }
     .card:nth-child(4) {
-      --accent: #334155; --tint: rgba(51,65,85,0.09); --tilt: 2.2deg; --fromX: 60px;
+      --accent: #515254; --tint: rgba(81,82,84,0.10); --tilt: 2.2deg; --fromX: 60px;
       animation: cardIn 0.75s cubic-bezier(0.34,1.56,0.64,1) 4.15s forwards, cardPop 0.7s ease 5.75s;
     }
 
@@ -208,7 +208,7 @@
     }
     @keyframes pulseRing {
       0%, 100% { filter: none; transform: scaleX(1); }
-      40% { filter: drop-shadow(0 0 10px rgba(124,58,237,0.7)); transform: scaleX(1.15); }
+      40% { filter: drop-shadow(0 0 10px rgba(244,99,58,0.7)); transform: scaleX(1.15); }
     }
     @keyframes confettiBurst {
       0% { opacity: 1; transform: translate(0, 0) scale(0.5) rotate(0deg); }
@@ -229,13 +229,13 @@
 
     <div class="confetti">
       <span style="--c:#F4633A; --x:-120px; --y:-90px; --r:140deg;"></span>
-      <span style="--c:#0d9488; --x:110px; --y:-100px; --r:-120deg; --shape:50%;"></span>
-      <span style="--c:#7c3aed; --x:-90px; --y:100px; --r:200deg;"></span>
-      <span style="--c:#F4633A; --x:130px; --y:80px; --r:-160deg; --shape:50%;"></span>
-      <span style="--c:#334155; --x:0px; --y:-140px; --r:90deg;"></span>
-      <span style="--c:#0d9488; --x:-150px; --y:10px; --r:-90deg; --shape:50%;"></span>
-      <span style="--c:#7c3aed; --x:150px; --y:-10px; --r:110deg;"></span>
-      <span style="--c:#334155; --x:20px; --y:140px; --r:-200deg; --shape:50%;"></span>
+      <span style="--c:#28A197; --x:110px; --y:-100px; --r:-120deg; --shape:50%;"></span>
+      <span style="--c:#6B007B; --x:-90px; --y:100px; --r:200deg;"></span>
+      <span style="--c:#515254; --x:130px; --y:80px; --r:-160deg; --shape:50%;"></span>
+      <span style="--c:#28A197; --x:0px; --y:-140px; --r:90deg;"></span>
+      <span style="--c:#6B007B; --x:-150px; --y:10px; --r:-90deg; --shape:50%;"></span>
+      <span style="--c:#F4633A; --x:150px; --y:-10px; --r:110deg;"></span>
+      <span style="--c:#515254; --x:20px; --y:140px; --r:-200deg; --shape:50%;"></span>
     </div>
 
     <div class="grid">

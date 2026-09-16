@@ -25,8 +25,14 @@
       "volume": 0.28
     },
     {
-      "src": "audio/voice-en.wav",
+      "src": "audio/voice-en.mp3",
       "lang": "en",
+      "role": "narration",
+      "volume": 1
+    },
+    {
+      "src": "audio/voice-cy.mp3",
+      "lang": "cy",
       "role": "narration",
       "volume": 1
     }

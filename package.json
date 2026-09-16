@@ -32,6 +32,7 @@
     "validate:story": "node scripts/validate-story.mjs",
     "pack:dive": "node scripts/pack-dive.mjs",
     "build:pages": "node scripts/build-pages.mjs",
+    "generate:narration": "node scripts/generate-narration.mjs",
     "test:ci": "npm run typecheck && npm run validate:story && npm run build && npm run check:dist && node scripts/test-dive-stream.mjs && node --experimental-strip-types scripts/test-audio-sync-plan.mjs",
     "prepublishOnly": "npm run test:ci",
     "build:wealth-health-data": "node examples/the_wealth_and_health_of_nations/scripts/build-gapminder-data.mjs"
@@ -60,6 +61,7 @@
     "lit": "^3.3.2"
   },
   "devDependencies": {
+    "@travisvn/edge-tts": "^1.0.2",
     "@types/d3": "^7.4.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",

@@ -28,12 +28,12 @@
 
     .overlay-top {
       position: absolute;
-      left: 50%; top: 6%;
+      left: 50%; top: 7.5%;
       transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 6px;
       width: min(94%, 960px);
     }
     .overlay-row {
@@ -60,7 +60,7 @@
       margin: 0;
       text-shadow: 0 0 14px #f9fafb, 0 0 6px #f9fafb;
     }
-    .overlay-text strong { color: #111827; font-weight: 800; }
+    .overlay-text strong { color: #F4633A; font-weight: 800; }
     .overlay-delta {
       flex: none;
       text-align: center;
@@ -110,8 +110,8 @@
       color: #fff;
       border: none;
       border-radius: 999px;
-      padding: 13px 26px;
-      font-size: 16px;
+      padding: 15px 30px;
+      font-size: 19px;
       font-weight: 700;
       font-family: Arial, "Segoe UI", sans-serif;
       cursor: pointer;
@@ -389,7 +389,6 @@
     updateFadePause();
 
     function openBreakdownModal() {
-      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'reporting-bodies-growth' }, '*');
       if (!breakdownIframe.getAttribute('src')) breakdownIframe.src = BREAKDOWN_URL;
       breakdownModal.classList.add('open');
       updateFadePause();
@@ -403,6 +402,12 @@
     document.getElementById('breakdown-modal-close').addEventListener('click', closeBreakdownModal);
     breakdownModal.addEventListener('click', (e) => { if (e.target === breakdownModal) closeBreakdownModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBreakdownModal(); });
+
+    // Any click pauses playback, except the explore button (which shows the breakdown without pausing).
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#explore-btn')) return;
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'reporting-bodies-growth' }, '*');
+    });
 
     window.addEventListener('message', event => {
       const p = event.data;

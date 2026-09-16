@@ -68,7 +68,6 @@ export class DiveVideo extends LitElement {
   private sequencer: Sequencer | null = null;
   private activeAdapter: IAdapter | null = null;
   private lastVisualState: any = null;
-  private activeScenePauseOnInteract = false;
   private isScrubbing = false;
   private scrubberElement: HTMLElement | null = null;
   private hideUIHandle = 0;
@@ -148,6 +147,10 @@ export class DiveVideo extends LitElement {
       inset: 0;
       z-index: 8;
       background: transparent;
+    }
+    .play-catcher.paused {
+      /* Let clicks fall through to the tool underneath so pause-to-explore keeps working. */
+      pointer-events: none;
     }
     #canvas-container.fading {
       opacity: 0;
@@ -599,12 +602,12 @@ export class DiveVideo extends LitElement {
   private handlePlayCatcher = (event: Event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (this.isUIHidden) {
+    if (this.activeUiMode() === 'autohide' && this.isUIHidden) {
+      // First tap while chrome is hidden just reveals it again, matching the existing autohide UX.
       this.resetUIHideTimer();
       return;
     }
-    this.isUIHidden = true;
-    if (this.hideUIHandle) window.clearTimeout(this.hideUIHandle);
+    this.togglePlay();
   }
 
   private observeStage() {
@@ -691,10 +694,6 @@ export class DiveVideo extends LitElement {
         this.syncMedia(state.time);
         this.scheduleUrlSync();
 
-        if (state.scene) {
-          this.activeScenePauseOnInteract = this.resolvePauseOnInteract(state.scene, state.visualState);
-        }
-        
         // Handle Scene / Adapter Loading
         if (state.scene && state.scene.id !== this.activeToolId) {
           this.switchTool(state.scene);
@@ -776,7 +775,6 @@ export class DiveVideo extends LitElement {
       this.activeAdapter = null;
     }
     this.activeToolId = scene.id;
-    this.activeScenePauseOnInteract = this.resolvePauseOnInteract(scene, null);
     this.toolFading = true;
 
     const tool = scene.tool;
@@ -816,13 +814,8 @@ export class DiveVideo extends LitElement {
     if (this.activeAdapter) {
       if (this.activeAdapter.onInteract) {
         this.activeAdapter.onInteract(() => {
-          if (!this.activeScenePauseOnInteract || !this.isPlaying || !this.sequencer) {
-            return;
-          }
-
-          this.sequencer.pause();
-          this.isPlaying = false;
-          this.notifyAdapterPlaybackState();
+          if (!this.sequencer) return;
+          this.togglePlay();
         });
       }
 
@@ -1013,14 +1006,6 @@ export class DiveVideo extends LitElement {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
-  }
-
-  private resolvePauseOnInteract(scene: Story['scenes'][0], visualState: any) {
-    if (visualState && typeof visualState.pauseOnInteract === 'boolean') {
-      return visualState.pauseOnInteract;
-    }
-
-    return Boolean(scene.pauseOnInteract);
   }
 
   private getTimelineSections(): TimelineSection[] {
@@ -1387,7 +1372,7 @@ export class DiveVideo extends LitElement {
           style="--aspect-ratio: ${aspectCss(aspect)}; --ar-w: ${aspect.width}; --ar-h: ${aspect.height};"
         >
           <div id="canvas-container" class="${this.toolFading ? 'fading' : ''}" part="canvas"></div>
-          ${chromeMode === 'autohide' && this.isPlaying ? html`<div class="play-catcher" @pointerdown=${this.handlePlayCatcher}></div>` : ''}
+          <div class="play-catcher ${this.isPlaying ? '' : 'paused'}" @pointerdown=${this.handlePlayCatcher}></div>
           ${poster ? html`<img class="poster" part="poster" src="${poster}" alt="" />` : ''}
           ${this.sceneReady ? '' : html`<div class="buffer-spinner" part="buffer" aria-label="Loading scene"></div>`}
           

@@ -88,8 +88,8 @@
       color: #fff;
       border: none;
       border-radius: 999px;
-      padding: 11px 22px;
-      font-size: 14px;
+      padding: 15px 30px;
+      font-size: 20px;
       font-weight: 700;
       font-family: Arial, "Segoe UI", sans-serif;
       cursor: pointer;
@@ -162,13 +162,13 @@
     }
     #breakdown-modal-close:hover { background: rgba(17,24,39,0.85); }
 
-    /* ── 67-body / 18% increase fact callout (centred, above x-axis) ── */
+    /* ── 67-body / 18% increase fact callout (centred, sitting below the orange line) ── */
     .fact-callout {
       position: absolute;
       left: 50%;
-      bottom: clamp(96px, 18vh, 148px);
+      top: clamp(140px, 20vh, 170px);
       transform: translateX(-50%) translateY(16px);
-      max-width: 380px;
+      max-width: 720px;
       width: max-content;
       text-align: center;
       opacity: 0;
@@ -177,7 +177,7 @@
     }
     .fact-callout.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     .fact-callout-caption {
-      font-size: 12.5px;
+      font-size: 26px;
       color: #6b7280;
       line-height: 1.45;
       margin: 0 0 6px 0;
@@ -186,21 +186,21 @@
       display: flex; align-items: baseline; justify-content: center; gap: 4px;
     }
     .fact-callout-arrow {
-      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-size: clamp(1.6rem, 3.4vw, 2.3rem);
       font-weight: 800;
       color: #F4633A;
       display: inline-block;
       animation: factArrowRise 1.4s ease-in-out 0.3s 3;
     }
     .fact-callout-num {
-      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-size: clamp(2.6rem, 5.8vw, 3.7rem);
       font-weight: 800;
       color: #F4633A;
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .fact-callout-sub {
-      font-size: 13px;
+      font-size: 24px;
       font-weight: 700;
       color: #374151;
       margin: 4px 0 0 0;
@@ -585,7 +585,6 @@
     const BREAKDOWN_URL = new URL('emissions-trend.html', window.location.href).toString();
 
     function openBreakdownModal() {
-      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'emissions-per-body' }, '*');
       if (!breakdownIframe.getAttribute('src')) breakdownIframe.src = BREAKDOWN_URL;
       breakdownModal.classList.add('open');
     }
@@ -596,6 +595,12 @@
     exploreBtn.addEventListener('click', openBreakdownModal);
     document.getElementById('breakdown-modal-close').addEventListener('click', closeBreakdownModal);
     breakdownModal.addEventListener('click', (e) => { if (e.target === breakdownModal) closeBreakdownModal(); });
+
+    // Any click pauses playback, except the explore button (which shows the breakdown without pausing).
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#explore-btn')) return;
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'emissions-per-body' }, '*');
+    });
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { hidePanel(); closeBreakdownModal(); } });
     window.addEventListener('resize', () => { if (!chartData) return; setupChart(); render(false); });

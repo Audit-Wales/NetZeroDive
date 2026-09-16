@@ -71,11 +71,7 @@
       white-space: nowrap; z-index: 8;
     }
 
-    .scope-arc {
-      opacity: 0; transform: scale(0.85); transform-box: fill-box; transform-origin: center;
-      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(.34,1.56,.64,1);
-    }
-    .scope-arc.revealed { opacity: 1; transform: scale(1); }
+    .scope-arc { opacity: 1; }
 
     .leader-line {
       fill: none; stroke: #9ca3af; stroke-width: 1.25;
@@ -86,21 +82,28 @@
       opacity: 0; transition: opacity 0.4s ease 0.25s;
     }
     .leader-label.revealed { opacity: 1; }
-    .leader-label .name { font-weight: 700; font-size: 13px; fill: #111827; }
-    .leader-label .value { font-size: 12.5px; fill: #6b7280; }
-    .leader-label .percent { font-size: 20px; font-weight: 800; fill: #111827; }
+    /* name/percent fill set per-label in JS to match their slice's colour */
+    .leader-label .name { font-weight: 700; font-size: 17px; }
+    .leader-label .value { font-size: 15px; fill: #6b7280; }
+    .leader-label .percent { font-size: 25px; font-weight: 800; }
 
     .center-total-label {
-      font-size: 13px; font-weight: 700; fill: #111827;
+      font-size: 13px; font-weight: 700; fill: #374151;
       opacity: 0; transition: opacity 0.4s ease 0.15s;
     }
     .center-total-label.revealed { opacity: 1; }
     .center-total-value {
-      font-weight: 700; fill: #111827;
+      font-weight: 700; fill: #374151;
       opacity: 0; transform: scale(0.5); transform-box: fill-box; transform-origin: center;
       transition: opacity 0.45s ease, transform 0.5s cubic-bezier(.34,1.56,.64,1);
     }
     .center-total-value.revealed { opacity: 1; transform: scale(1); }
+    .center-total-unit {
+      font-weight: 700; fill: #374151; letter-spacing: 0.02em;
+      opacity: 0;
+      transition: opacity 0.4s ease 0.2s;
+    }
+    .center-total-unit.revealed { opacity: 1; }
 
     /* ── Explore scope-trend button ── */
     .explore-hint {
@@ -121,8 +124,8 @@
       color: #fff;
       border: none;
       border-radius: 999px;
-      padding: 11px 22px;
-      font-size: 14px;
+      padding: 15px 30px;
+      font-size: 20px;
       font-weight: 700;
       font-family: Arial, "Segoe UI", sans-serif;
       cursor: pointer;
@@ -286,7 +289,8 @@
 
     let outerR, innerR, arcGen;
     let slicesGroup, leaderGroup, centerGroup;
-    const LABEL_MIN_GAP = 34;
+    const LABEL_MIN_GAP = 46;
+    const ARC_FILL_DURATION_MS = 1400;
 
     function setupDonut() {
       const panel = document.getElementById('donut-panel');
@@ -318,6 +322,9 @@
       centerGroup.selectAll('text.center-total-value').data([0]).join('text')
         .attr('class', 'center-label center-total-value')
         .attr('font-size', outerR * 0.34).attr('dy', '0.75em');
+      centerGroup.selectAll('text.center-total-unit').data([0]).join('text')
+        .attr('class', 'center-label center-total-unit')
+        .attr('font-size', outerR * 0.13).attr('y', outerR * 0.46).attr('dy', 0);
     }
 
     // Assigns pie angles (clockwise from the top) to each scope entry, in data order.
@@ -361,7 +368,7 @@
         if (token !== counterToken) return; // superseded by a newer render
         const progress = Math.min((now - start) / duration, 1);
         const val = to * progress;
-        textEl.text(val.toFixed(2));
+        textEl.text(d3.format(',.0f')(val));
         if (progress < 1) requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
@@ -374,6 +381,7 @@
     function renderDonutForPhase(phase, animate) {
       const valueEl = centerGroup.select('.center-total-value');
       const labelEl = centerGroup.select('.center-total-label');
+      const unitEl = centerGroup.select('.center-total-unit');
 
       if (phase < 2) {
         counterToken++; // invalidate any in-flight counter
@@ -381,20 +389,44 @@
         leaderGroup.selectAll('*').classed('revealed', false).remove();
         valueEl.classed('revealed', false);
         labelEl.classed('revealed', false);
+        unitEl.classed('revealed', false);
         return;
       }
 
       const arcs = computeArcs();
-      const totalMillions = (d3.sum(arcs, (d) => d.emissions) || 0) / 1000;
+      const totalEmissions = d3.sum(arcs, (d) => d.emissions) || 0;
       const nameKeys = scopeNameKeys();
+      // Scope 2's swatch is too pale to read as text — label it in Scope 1's darker colour instead.
+      const scope1Color = arcs.find((a) => a.id === 'scope1')?.color;
+      const labelColor = (d) => (d.id === 'scope2' && scope1Color) ? scope1Color : d.color;
 
-      slicesGroup.selectAll('path.scope-arc').data(arcs, (d) => d.id).join('path')
-        .attr('class', 'scope-arc')
-        .attr('fill', (d) => d.color)
-        .attr('d', arcGen)
-        .each(function (d, i) {
-          requestAnimationFrame(() => setTimeout(() => d3.select(this).classed('revealed', true), i * 120));
-        });
+      // First reveal only: sweep the ring clockwise from the top, one continuous fill.
+      // Later phase changes (e.g. narrative moving on) just restyle the same arcs in
+      // place — no re-entrance, so no re-triggering of the fill animation (no flash).
+      const arcsAlreadyRevealed = slicesGroup.selectAll('path.scope-arc.revealed').size() > 0;
+      slicesGroup.selectAll('path.scope-arc').data(arcs, (d) => d.id).join(
+        (enter) => enter.append('path')
+          .attr('class', 'scope-arc')
+          .attr('fill', (d) => d.color)
+          .each(function (d) {
+            const el = d3.select(this);
+            if (!animate || arcsAlreadyRevealed) {
+              el.attr('d', arcGen(d)).classed('revealed', true);
+              return;
+            }
+            const sweep = d.endAngle - d.startAngle;
+            const startDelay = ((d.startAngle + Math.PI / 2) / (2 * Math.PI)) * ARC_FILL_DURATION_MS;
+            const duration = ARC_FILL_DURATION_MS * (sweep / (2 * Math.PI));
+            el.attr('d', arcGen({ ...d, endAngle: d.startAngle })).classed('revealed', true);
+            el.transition().delay(startDelay).duration(duration).ease(d3.easeLinear)
+              .attrTween('d', () => {
+                const interpolateAngle = d3.interpolate(d.startAngle, d.endAngle);
+                return (t) => arcGen({ ...d, endAngle: interpolateAngle(t) });
+              });
+          }),
+        (update) => update.attr('fill', (d) => d.color).attr('d', arcGen),
+        (exit) => exit.remove()
+      );
 
       const leaders = placeLeaders(arcs);
       const lines = leaderGroup.selectAll('path.leader-line').data(leaders, (p) => p.d.id);
@@ -421,22 +453,24 @@
         .attr('y', (p) => p.labelY)
         .each(function (p, i) {
           const sel = d3.select(this);
-          sel.select('tspan.name').attr('x', p.isRight ? outerR + 40 : -(outerR + 40)).text(T(nameKeys[p.d.id] || p.d.name));
+          sel.select('tspan.name').attr('x', p.isRight ? outerR + 40 : -(outerR + 40))
+            .style('fill', labelColor(p.d)).text(T(nameKeys[p.d.id] || p.d.name));
           sel.select('tspan.value').attr('x', p.isRight ? outerR + 40 : -(outerR + 40))
-            .text(`${(p.d.emissions / 1000).toFixed(2)}t`);
+            .text(`${d3.format(',.0f')(p.d.emissions)} tCO\u2082e`);
           sel.select('tspan.percent').attr('x', p.isRight ? outerR + 40 : -(outerR + 40))
-            .text(`${p.d.share}%`);
+            .style('fill', labelColor(p.d)).text(`${p.d.share}%`);
           requestAnimationFrame(() => setTimeout(() => sel.classed('revealed', true), 200 + i * 120));
         });
 
       labelEl.text(T('donutCenterShareLabel')).classed('revealed', true);
+      unitEl.text(T('donutCenterUnit')).classed('revealed', true);
       const alreadyRevealed = valueEl.classed('revealed');
       if (animate && !alreadyRevealed) {
         counterToken++;
-        animateTotal(valueEl, totalMillions, 1600);
+        animateTotal(valueEl, totalEmissions, 1600);
       } else {
         counterToken++; // invalidate any in-flight counter, show final value directly
-        valueEl.text(totalMillions.toFixed(2));
+        valueEl.text(d3.format(',.0f')(totalEmissions));
       }
       valueEl.classed('revealed', true);
     }
@@ -522,7 +556,6 @@
     updateFadePause();
 
     function openScopeTrendModal() {
-      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'sector-donut' }, '*');
       if (!scopeTrendIframe.getAttribute('src')) scopeTrendIframe.src = SCOPE_TREND_URL;
       scopeTrendModal.classList.add('open');
       updateFadePause();
@@ -535,6 +568,12 @@
     document.getElementById('scope-trend-modal-close').addEventListener('click', closeScopeTrendModal);
     scopeTrendModal.addEventListener('click', (e) => { if (e.target === scopeTrendModal) closeScopeTrendModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeScopeTrendModal(); });
+
+    // Any click pauses playback, except the explore button (which shows the scope trend without pausing).
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#explore-btn')) return;
+      window.parent?.postMessage({ type: 'DIVE_INTERACT', source: 'sector-donut' }, '*');
+    });
 
     window.addEventListener('message', event => {
       const p = event.data;
