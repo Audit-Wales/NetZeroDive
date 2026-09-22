@@ -310,7 +310,8 @@
 
       slicesGroup = g.selectAll('g.slices').data([0]).join('g').attr('class', 'slices');
       leaderGroup = g.selectAll('g.leaders').data([0]).join('g').attr('class', 'leaders');
-      centerGroup = g.selectAll('g.center').data([0]).join('g').attr('class', 'center');
+      centerGroup = g.selectAll('g.center').data([0]).join('g').attr('class', 'center')
+        .attr('transform', `translate(0,${-outerR * 0.12})`);
 
       slicesGroup.selectAll('path.bg-ring').data([1]).join('path')
         .attr('class', 'bg-ring').attr('fill', '#f3f4f6')
@@ -318,13 +319,13 @@
 
       centerGroup.selectAll('text.center-total-label').data([0]).join('text')
         .attr('class', 'center-label center-total-label')
-        .attr('font-size', outerR * 0.16).attr('dy', '-0.5em');
+        .attr('font-size', outerR * 1.0).attr('dy', '-0.9em');
       centerGroup.selectAll('text.center-total-value').data([0]).join('text')
         .attr('class', 'center-label center-total-value')
-        .attr('font-size', outerR * 0.34).attr('dy', '0.75em');
+        .attr('font-size', outerR * 0.32).attr('dy', '0.45em');
       centerGroup.selectAll('text.center-total-unit').data([0]).join('text')
         .attr('class', 'center-label center-total-unit')
-        .attr('font-size', outerR * 0.13).attr('y', outerR * 0.46).attr('dy', 0);
+        .attr('font-size', outerR * 0.13).attr('y', outerR * 0.38).attr('dy', 0);
     }
 
     // Assigns pie angles (clockwise from the top) to each scope entry, in data order.
